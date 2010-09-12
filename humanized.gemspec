@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   
   s.require_paths = ["lib"]
   
-  s.files = Dir.glob("{lib,spec}/**/**/*") + ["Rakefile"]
+  s.files = Dir.glob("lib/**/**/*")
   
   s.add_dependency "json"
 end
