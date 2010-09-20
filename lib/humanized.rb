@@ -1,3 +1,4 @@
+require "set"
 module Humanized
   
   DIR = File.dirname(__FILE__)
@@ -5,6 +6,20 @@ module Humanized
   autoload :Humanizer,DIR+"/humanized/humanizer"
   autoload :HumanizationHash ,DIR+"/humanized/humanization_hash"
   autoload :Source,DIR+"/humanized/source"
+  autoload :Helper,DIR+"/humanized/helper"
+
+  class Choice < SortedSet
+    
+    def [](key)
+      # to_a is cached, so this isn't converted to an array, every hit
+      to_a[key]
+    end
+    
+    def inspect
+      '{' + to_a.inspect[1..-2] + '}'
+    end
+    
+  end
   
   class << self
     
@@ -23,7 +38,7 @@ module Humanized
     def humanization_keys
       return @humanization_keys if @humanization_keys
       
-      @humanization_keys = []
+      @humanization_keys = Choice.new
       name = self.to_s
       
       if name[0,2] != '#<'

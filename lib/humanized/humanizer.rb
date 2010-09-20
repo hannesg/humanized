@@ -1,6 +1,15 @@
 class Humanized::Humanizer
   
-  TranslationMissing = Class.new(Exception)
+  class TranslationMissing < StandardError
+    
+    attr_reader :keys
+    
+    def initialize(keys)
+      @keys = keys
+      super("Missing Translation: #{keys.inspect}")
+    end
+    
+  end
   
   REGEXP=/\[([^\]]+)\]/
   VAR_PREFIX=?%
@@ -17,15 +26,26 @@ class Humanized::Humanizer
   
   def initialize
     @functions = {}
+    @interpolater = Object.new
+    @send = @interpolater.method :send
+    @extend = @interpolater.method :extend
+    @interpolater.instance_eval do
+      undef :send, :extend, :instance_eval, :eval
+    end
+    @interpolater.instance_variable_set('@humanizer',self)
   end
   
-  attr_accessor :source, :functions
+  def add_helper(mod)
+    @extend.call(mod)
+  end
+  
+  attr_accessor :source
   
   def humanize(*args)
     
     interpolation_args = args.last.kind_of?(Hash) ? args.pop : {}
     
-    raise TranslationMissing if args.size == 0
+    raise TranslationMissing.new(args) if args.size == 0
     
     args = args.map &NORMALIZER
     
@@ -54,14 +74,14 @@ class Humanized::Humanizer
       @indices = [0] * path.size
       @max_indices = path.collect{|value|
          case(value)
-           when Array then value.size
+           when Humanized::Choice then value.size
            else 1
          end
       }
       @end = false
       @value = path.collect{|value|
          case(value)
-           when Array then value[0]
+           when Humanized::Choice then value[0]
            else value
          end
       }
@@ -102,20 +122,20 @@ class Humanized::Humanizer
       end
       return self
     end
-    
   end
   
   def lookup(path)
     # example keys:
     # ['a','b'] => gets ['a']['b']
     # [['x','y'],'b'] => gets ['x']['b'] or ['y']['b']
+    puts "lookup #{path.inspect}"
     Iterator.new(path).each do |simple_path|
       begin
         return lookup_simple(simple_path)
       rescue TranslationMissing
       end
     end
-    raise TranslationMissing
+    raise TranslationMissing.new(path)
   end
   
   def lookup_simple(path)
@@ -123,7 +143,7 @@ class Humanized::Humanizer
       base = source
       path.each do |k|
         unless base.key? k
-          raise TranslationMissing
+          raise TranslationMissing.new(path)
         end
         
         base = base[k]
@@ -152,17 +172,19 @@ class Humanized::Humanizer
           a
         end
       end
-      return functions[fn].call(self,args)
+      return call_interpolation_function(fn,args)
     end
     return spl
   end
   
-  def add_function(name,&block)
-    functions[name] = block
-  end
+  protected
   
   def varname(v)
     v[1..-1]
+  end
+  
+  def call_interpolation_function(name,args)
+    @send.call(name,*args)
   end
   
 end
