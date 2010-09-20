@@ -62,8 +62,6 @@ module Humanized::Helper::German
     key << multiplicity
     key << kase
     
-    puts key.inspect
-    
     return @humanizer.humanize(*key)
   end
   

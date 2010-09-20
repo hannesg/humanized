@@ -128,7 +128,6 @@ class Humanized::Humanizer
     # example keys:
     # ['a','b'] => gets ['a']['b']
     # [['x','y'],'b'] => gets ['x']['b'] or ['y']['b']
-    puts "lookup #{path.inspect}"
     Iterator.new(path).each do |simple_path|
       begin
         return lookup_simple(simple_path)
