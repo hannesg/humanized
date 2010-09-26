@@ -7,7 +7,13 @@ module Humanized::Source
       path = file[dir.size..-6].split('/')
       path.shift if path.first == ''
       
-      merge!(h,path,JSON.load(File.new(file)))
+      if defined?(Yajl)
+        merge!(h,path,Yajl::Parser.parse(File.new(file)))
+      elsif defined?(JSON)
+        merge!(h,path,JSON.load(File.new(file)))
+      else
+        raise "Please install yajl or json"
+      end
     end
     
     return h

@@ -12,5 +12,4 @@ Gem::Specification.new do |s|
   
   s.files = Dir.glob("lib/**/**/*")
   
-  s.add_dependency "json"
 end
