@@ -15,12 +15,14 @@ class Humanized::Humanizer
   VAR_PREFIX=?%
   
   NORMALIZER = lambda{|arg|
-    case(arg)
-      when Humanized then arg.humanization_keys
-      when Array then arg.map &NORMALIZER
-      when Symbol then arg.to_s
-      when String then arg
-      else raise ArgumentError, "don't know how to normalize #{arg}"
+    if arg.kind_of? Humanized
+      arg.humanization_keys
+    elsif arg.kind_of? Array
+      arg.map &NORMALIZER
+    elsif arg.kind_of? String
+      arg
+    else
+      raise ArgumentError, "don't know how to normalize #{arg}"
     end
   }
   
@@ -73,16 +75,18 @@ class Humanized::Humanizer
       @path = path
       @indices = [0] * path.size
       @max_indices = path.collect{|value|
-         case(value)
-           when Humanized::Choice then value.size
-           else 1
+         if value.kind_of? Humanized::Choice
+           value.size
+         else
+           1
          end
       }
       @end = false
       @value = path.collect{|value|
-         case(value)
-           when Humanized::Choice then value[0]
-           else value
+         if value.kind_of? Humanized::Choice
+           value[0]
+         else
+           value
          end
       }
     end
