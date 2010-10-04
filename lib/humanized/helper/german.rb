@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Humanized::Helper::German
   
   SINGULAR = '$singular'.freeze

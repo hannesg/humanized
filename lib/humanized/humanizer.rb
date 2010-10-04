@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 class Humanized::Humanizer
   
   class TranslationMissing < StandardError

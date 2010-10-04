@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 class Humanized::InterpolationEnvironment
   
   UNWRAPPED_METHODS = []

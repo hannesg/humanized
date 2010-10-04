@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Humanized::Source
   
   def self.json_dir(dir)
