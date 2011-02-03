@@ -1,194 +1,125 @@
 # -*- encoding : utf-8 -*-
-class Humanized::Humanizer
+require 'facets/array/extract_options.rb'
+require 'facets/hash/deep_merge.rb'
+
+module Humanized
+class Humanizer
   
-  class TranslationMissing < StandardError
-    
-    attr_reader :keys
-    
-    def initialize(keys)
-      @keys = keys
-      super("Missing Translation: #{keys.inspect}")
-    end
-    
-  end
+  DEFAULT_INTERPOLATER = lambda{|humanizer,str,vars| str}
   
-  REGEXP=/\[([^\]]+)\]/
-  VAR_PREFIX=?%
+  attr_accessor :interpolater, :source
   
-  NORMALIZER = lambda{|arg|
-    if arg.kind_of? Humanized
-      arg.humanization_keys
-    elsif arg.kind_of? Array
-      arg.map &NORMALIZER
-    elsif arg.kind_of? String
-      arg
-    else
-      raise ArgumentError, "don't know how to normalize #{arg}"
-    end
-  }
-  
-  def initialize
-    @functions = {}
-    @interpolater = Object.new
-    @send = @interpolater.method :send
-    @extend = @interpolater.method :extend
-    @interpolater.instance_eval do
-      undef :send, :extend, :instance_eval, :eval
-    end
-    @interpolater.instance_variable_set('@humanizer',self)
+  def initialize(source = {})
+    @interpolater = DEFAULT_INTERPOLATER
+    @source = source
   end
   
   def add_helper(mod)
     @extend.call(mod)
   end
   
-  attr_accessor :source
-  
-  def humanize(*args)
-    
-    interpolation_args = args.last.kind_of?(Hash) ? args.pop : {}
-    
-    raise TranslationMissing.new(args) if args.size == 0
-    
-    args = args.map &NORMALIZER
-    
-    result = lookup(args)
-    
-    if Hash === result
-      return result
-    else
-      return interpolate(result,interpolation_args)
+  # this method will guess what a user wants (ugh)
+  def object_to_s(object)
+    if object.kind_of? Humanized::Message
+      s = lookup( object.humanization_context + object.to_s) || object.to_s
+      return interpolate(s,object.humanization_variables)
+    # TODO: other primitives come here
     end
+
   end
   
-  def translate(str, *args)
-    begin
-      humanize(*args)
-    rescue TranslationMissing
-      interpolation_args = args.last.kind_of?(Hash) ? args.pop : {}
-      interpolate(str,interpolation_args)
-    end
-  end
+# :x, :y , "str"
   
-  class Iterator
-    
-    def initialize(path)
-      @path = path
-      @indices = [0] * path.size
-      @max_indices = path.collect{|value|
-         if value.kind_of? Humanized::Choice
-           value.size
-         else
-           1
-         end
-      }
-      @end = false
-      @value = path.collect{|value|
-         if value.kind_of? Humanized::Choice
-           value[0]
-         else
-           value
-         end
-      }
-    end
-    
-    def next
-      
-      i = @indices.size
-      
-      result = self.get
-      
-      while i > 0
-        i -= 1
-        @indices[i] += 1
-        if @indices[i] >= @max_indices[i]
-          @indices[i] = 0
-        else
-          @value[i] = @path[i][@indices[i]]
-          return result
-        end
-      end
-      
-      @end = true
-      return result
-    end
-    
-    def get
-      return @value.flatten
-    end
-    
-    def end?
-      @end
-    end
-    
-    def each
-      while !end?
-        yield(self.next)
-      end
-      return self
-    end
-  end
+  alias_method :call, :object_to_s
   
-  def lookup(path)
-    # example keys:
-    # ['a','b'] => gets ['a']['b']
-    # [['x','y'],'b'] => gets ['x']['b'] or ['y']['b']
-    Iterator.new(path).each do |simple_path|
-      begin
-        return lookup_simple(simple_path)
-      rescue TranslationMissing
-      end
-    end
-    raise TranslationMissing.new(path)
-  end
-  
-  def lookup_simple(path)
-      
-      base = source
-      path.each do |k|
-        unless base.key? k
-          raise TranslationMissing.new(path)
-        end
-        
-        base = base[k]
-      end
+  def lookup(base,*rest)
+    if base.kind_of? String
       return base
+    end
+    it = base._(*rest)
+    if it.kind_of? ScopeWithVariables
+      vars = it.variables
+    else
+      vars = {}
+    end
+    result = _get(it)
+    if result.kind_of? String
+      return interpolate(result,vars)
+    elsif result.nil?
+      warn "Translation missing: #{it.inspect}."
+    else
+      warn "[] should be only used for strings. For anything else use get."
+    end
+    return result
+  end
+  
+  def get(base,*rest)
+    it = base._(*rest)
+    return _get(it)
+  end
+  
+  def _get(it)
+    it.each do |path|
+      result = find(path, @source)
+      return result unless result.nil?
+    end
+    return nil
+  end
+  
+  def write(it, str)
+    store(it.humanization_key.first,str)
+  end
+  
+  alias_method :[] , :lookup
+  alias_method :[]=, :write
+  
+protected
+  def store(path ,str, hsh = @source)
+    hshc = hsh
+    l = path.length - 1
+    if str.kind_of? Hash
+      l += 1
+    end
+    (0...l).each do |i|
+      a = path[i]
+      unless hshc.key?(a)
+        hshc[a] = {}
+      end
+      hshc = hshc[a]
+      while hshc.kind_of? Humanized::Ref
+        hshc = store(hshc, str,  @source)
+      end
+    end
+    if str.kind_of? Hash
+      hshc.deep_merge!(str)
+    else
+      hshc[path[l]] = str
+    end
+    return nil
+  end
+  
+  def find(path, hsh)
+    hshc = hsh
+    l = path.length - 1
+    (0...l).each do |i|
+      a = path[i]
+      return nil unless hshc.key?(a)
+      hshc = hshc[a]
+      while hshc.kind_of? Humanized::Ref
+        hshc = find(hshc, @source)
+      end
+      return nil unless hshc.respond_to? :[]
+    end
+    hshc = hshc[path[l]]
+    while hshc.kind_of? Humanized::Ref
+      hshc = find(hshc, @source)
+    end
+    return hshc
   end
   
   def interpolate(str,vars={})
-    str.gsub(REGEXP){|m|
-      replace($1,vars)
-    }
+    @interpolater.call(self, str, vars)
   end
   
-  def replace(match,vars)
-    spl = match.split('|')
-    if spl.length == 1
-      if( spl[0][0] == VAR_PREFIX )
-        return vars[varname(spl[0])]
-      end
-    else
-      fn = spl.shift
-      args = spl.map do |a|
-        if a[0] == VAR_PREFIX
-          vars[varname(spl[0])]
-        else
-          a
-        end
-      end
-      return call_interpolation_function(fn,args)
-    end
-    return spl
-  end
-  
-  protected
-  
-  def varname(v)
-    v[1..-1]
-  end
-  
-  def call_interpolation_function(name,args)
-    @send.call(name,*args)
-  end
-  
+end
 end

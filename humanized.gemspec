@@ -5,11 +5,17 @@ Gem::Specification.new do |s|
   s.authors = ["HannesG"]
   s.email = %q{hannes.georg@googlemail.com}
   s.summary = %q{Humanizes}
-  s.homepage = %q{http://github.com/hannesg/splash}
+  s.homepage = %q{http://github.com/hannesg/humanized}
   s.description = %q{Humanizes it!}
   
   s.require_paths = ["lib"]
   
   s.files = Dir.glob("lib/**/**/*")
+  
+  s.add_dependency "facets"
+  s.add_dependency "parslet"
+  
+  s.add_development_dependency 'rspec'
+  s.add_development_dependency 'rake'
   
 end
