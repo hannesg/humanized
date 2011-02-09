@@ -61,12 +61,7 @@ module Humanized
       p = Parser.new
       t = Transform.new
       ps = p.parse(str)
-      puts ps.inspect
       ts = t.apply(ps)
-      #s = ts.shift
-      #tm = s._(*ts)
-      puts ts.inspect
-      #puts tm.inspect
       return ts
     end
     

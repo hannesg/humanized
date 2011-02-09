@@ -14,36 +14,22 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
-
-Bundler.require(:default,:development)
-require "humanized.rb"
-require "humanized/extras/yaml_source.rb"
-
-describe Humanized::YamlSource do
+module Humanized
+module Number
   
-  it "should load a whole dir" do
-    
-    h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de'))
-    
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
-    
+  def number(humanizer, number, format = 'default')
+    if format == 'default'
+      it = number._(:format,:default)
+    else
+      it = number._.format( format._ | :default._ )
+    end
+    f = humanizer.get(it)
+    if f.kind_of? String
+      return sprintf(f,number)
+    end
+    warn "Unable to find Number format: #{it.inspect}."
+    return ''
   end
   
-  it "should load single file" do
-    
-    #pending "redesign"
-    
-    h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
-    
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
-    
-  end
-  
-  
+end
 end

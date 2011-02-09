@@ -95,6 +95,7 @@ module Humanized
     end
     
     def |(other)
+      return other if @path.none?
       sp = self.path
       sd = self.depth
       op = other.path
@@ -136,6 +137,7 @@ module Humanized
     def +(*args)
       return self if args.none?
       if( args.first.kind_of? Scope )
+        return args.first if @path.none?
         # TODO: maybe modify depth too?
         new_path = []
         @path.each do |x|
@@ -145,24 +147,33 @@ module Humanized
         end
         return Scope.new(new_path,args.first.depth)
       end
-      return Scope.new( @path.map{|x| x + args} , 1 )
+      if @path.none?
+        return Scope.new( [args] , 1 )
+      end
+      return Scope.new( @path.map{|x| x + args} , @depth )
     end
     
     def _(*args,&block)
       thiz = self
-      if block_given?
-        thiz = thiz.instance_eval(&block)
-      end
+      vars = nil
       loop do
         return thiz if args.none?
         arg = args.shift
         if arg.kind_of? Symbol or arg.kind_of? Scope
           thiz += arg
         elsif arg.kind_of? Hash
-          return thiz.with_variables(arg)
+          vars = arg
         else
           thiz += arg._
         end
+      end
+      if block_given?
+        thiz = thiz.instance_eval(&block)
+      end
+      if vars
+        return thiz.with_variables(arg)
+      else
+        return thiz
       end
     end
   
@@ -202,10 +213,14 @@ module Humanized
       [self, @variables]
     end
     
+    def with_variables(vars)
+      ScopeWithVariables.new(@path, @depth, @variables.merge(vars))
+    end
+    
   end
-
   
-  L = Scope.new
+  L = Scope.new([[]],1)
+  None = Scope.new([],0)
   
   def humanization_key!
     if self.anonymous?
@@ -241,11 +256,9 @@ class Module
   include Humanized
 end
 class Object
-  
   def humanization_key
     self.class.humanization_key
   end
-  
   def _(*args,&block)
     self.humanization_key._(*args,&block)
   end
@@ -253,5 +266,14 @@ end
 class Symbol
   def _(*args,&block)
     Humanized::Scope.new([[self]])._(*args,&block)
+  end
+end
+class Array
+  def _(*args,&block)
+    if self.any?
+      return self[0]._(*self[1..-1])._(*args,&block)
+    else
+      Humanized::None
+    end
   end
 end

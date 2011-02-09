@@ -21,6 +21,8 @@ require "yaml"
 Bundler.require(:default,:development)
 require "humanized.rb"
 require "humanized/extras/scope_parslet.rb"
+require "humanized/interpolation/date.rb"
+require "humanized/interpolation/number.rb"
 
 describe Humanized do
   
@@ -110,6 +112,56 @@ YAML
       h = Humanized::Humanizer.new
       
       h['String'].should == 'String'
+      
+    end
+    
+    it "should format numbers" do
+      
+      h = Humanized::Humanizer.new
+      h.interpolater = Humanized::Interpolater.new
+      h.interpolater.extend(Humanized::Number)
+      
+      
+      h[:numeric, :format, :default]='%d'
+      h[:numeric, :format, :scientific]='%e'
+      
+      h[2].should == '2'
+      h[2, :scientific].should == '2.000000e+00'
+      h[2, :weird].should == '2'
+      
+    end
+    
+  end
+  
+  describe Humanized::Date do
+    
+    it "should translate dates" do
+      
+      h = Humanized::Humanizer.new
+      h.interpolater = Humanized::Interpolater.new
+      h.interpolater.extend(Humanized::Date)
+      
+      t = Time.mktime(2010,10,18,9,58,1)
+      
+      h[t,:format,:default] = '%Y-%m-%d %H:%M:%S'
+      
+      h.interpolater.call(h,'[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d %H:%M:%S')
+      
+    end
+    
+  end
+  
+  describe Humanized::Number do
+    
+    it "should translate numbers" do
+      
+      h = Humanized::Humanizer.new
+      h.interpolater = Humanized::Interpolater.new
+      h.interpolater.extend(Humanized::Number)
+      
+      h[:numeric,:format,:default] = '%d'
+      
+      h.interpolater.call(h,'[number|%n]',{:n => 2.4}).should == '2'
       
     end
     

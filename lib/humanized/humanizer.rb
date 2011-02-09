@@ -16,7 +16,8 @@
 #
 require 'facets/array/extract_options.rb'
 require 'facets/hash/deep_merge.rb'
-
+require 'sync'
+require 'set'
 module Humanized
 class Humanizer
   
@@ -27,31 +28,22 @@ class Humanizer
   def initialize(source = {})
     @interpolater = DEFAULT_INTERPOLATER
     @source = source
+    @sync = Sync.new
+    @files = Set.new
   end
-  
-  def add_helper(mod)
-    @extend.call(mod)
-  end
-  
-  # this method will guess what a user wants (ugh)
-  def object_to_s(object)
-    if object.kind_of? Humanized::Message
-      s = lookup( object.humanization_context + object.to_s) || object.to_s
-      return interpolate(s,object.humanization_variables)
-    # TODO: other primitives come here
-    end
-
-  end
-  
-# :x, :y , "str"
-  
-  alias_method :call, :object_to_s
   
   def lookup(base,*rest)
+    #TODO: maybe all the special cases could be realized as
+    # a simple Hash[ Class => String ] ?
     if base.kind_of? String
       return base
+    elsif base.kind_of?(Time) or base.kind_of?(::Date)
+      return interpolate('[date|%time|%format]',{:time => base,:format => rest})
+    elsif base.kind_of? Numeric
+      return interpolate('[number|%number|%format]',{:number => base,:format => rest})
+    else
+      it = base._(*rest)
     end
-    it = base._(*rest)
     if it.kind_of? ScopeWithVariables
       vars = it.variables
     else
@@ -73,6 +65,60 @@ class Humanizer
     return _get(it)
   end
   
+  def write(it, *rest)
+    last = rest.pop
+    store(it._(*rest).first,last)
+  end
+  
+  alias_method :[] , :lookup
+  alias_method :[]=, :write
+  
+  def load(path,opts ={})
+    options = {:scope => L, :grep => '**/*.*'}.update(opts)
+    f = File.join(path,options[:grep])
+    @sync.synchronize(Sync::EX){
+      return nil if @files.include? f
+      @files << f
+      options = {:scope => L, :grep => '**/*.*'}.update(opts)
+      if File.directory?(path)
+        Dir[f].each do |file|
+          data = self.read_file(file)
+          if data
+            xpath = file[path.size..(-1-File.extname(file).size)].split('/')
+            xpath.shift if xpath.first == ''
+            xscope = options[:scope]._(*xpath.map(&:to_sym))
+            self[xscope] = data
+          end
+        end
+      else
+        data = self.read_file(path)
+        if data
+          self[options[:scope]] = data
+        end
+      end
+    }
+    return self
+  end
+  
+protected
+
+  def read_file(file)
+    ep = File.expand_path(file)
+    return nil if @files.include? ep
+    @sync.synchronize(Sync::EX){
+      return nil if @files.include? ep
+      @files << ep
+      ext = File.extname(file)[1..-1]
+      meth = "read_#{ext}".to_sym
+      if self.respond_to?(meth)
+        return self.send(meth,file)
+      else
+        warn "No reader found for #{ext}."
+        return nil
+      end
+    }
+  end
+
   def _get(it)
     it.each do |path|
       result = find(path, @source)
@@ -81,36 +127,30 @@ class Humanizer
     return nil
   end
   
-  def write(it, str)
-    store(it.humanization_key.first,str)
-  end
-  
-  alias_method :[] , :lookup
-  alias_method :[]=, :write
-  
-protected
   def store(path ,str, hsh = @source)
-    hshc = hsh
-    l = path.length - 1
-    if str.kind_of? Hash
-      l += 1
-    end
-    (0...l).each do |i|
-      a = path[i]
-      unless hshc.key?(a)
-        hshc[a] = {}
+    @sync.synchronize(Sync::EX){
+      hshc = hsh
+      l = path.length - 1
+      if str.kind_of? Hash
+        l += 1
       end
-      hshc = hshc[a]
-      while hshc.kind_of? Humanized::Ref
-        hshc = store(hshc, str,  @source)
+      (0...l).each do |i|
+        a = path[i]
+        unless hshc.key?(a)
+          hshc[a] = {}
+        end
+        hshc = hshc[a]
+        while hshc.kind_of? Humanized::Ref
+          hshc = store(hshc, str,  @source)
+        end
       end
-    end
-    if str.kind_of? Hash
-      hshc.deep_merge!(str)
-    else
-      hshc[path[l]] = str
-    end
-    return nil
+      if str.kind_of? Hash
+        hshc.deep_merge!(str)
+      else
+        hshc[path[l]] = str
+      end
+      return nil
+    }
   end
   
   def find(path, hsh)

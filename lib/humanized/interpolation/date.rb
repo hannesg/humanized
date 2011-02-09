@@ -14,36 +14,22 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
-
-Bundler.require(:default,:development)
-require "humanized.rb"
-require "humanized/extras/yaml_source.rb"
-
-describe Humanized::YamlSource do
+module Humanized
+module Date
   
-  it "should load a whole dir" do
-    
-    h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de'))
-    
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
-    
+  def date(humanizer, date, format = 'default')
+    if format == 'default'
+      it = date._(:format,:default)
+    else
+      it = date._(:format){ _(format) | default }
+    end
+    f = humanizer.get(it)
+    if f.kind_of? String
+      return date.strftime( f )
+    end
+    warn 'Unable to find Date format: #{it.inspect}.'
+    return ''
   end
   
-  it "should load single file" do
-    
-    #pending "redesign"
-    
-    h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
-    
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
-    
-  end
-  
-  
+end
 end
