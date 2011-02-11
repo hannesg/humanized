@@ -80,7 +80,12 @@ YAML
       d = YAML.load(data)
       #pp d
       
-      H = humanizer = Humanized::Humanizer.new( d )
+      H = humanizer = Humanized::Humanizer.new
+      H.source.package('test') do |source|
+        
+        source << d
+        
+      end
       
       class Testing::Superadmin < Testing::Admin
         

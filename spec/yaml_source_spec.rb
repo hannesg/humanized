@@ -26,8 +26,8 @@ describe Humanized::YamlSource do
   it "should load a whole dir" do
     
     h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de'))
+    h.source.extend(Humanized::YamlSource)
+    h.source.load(File.join(File.dirname(__FILE__),'data/de'))
     
     h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
     
@@ -38,8 +38,8 @@ describe Humanized::YamlSource do
     #pending "redesign"
     
     h = Humanized::Humanizer.new
-    h.extend(Humanized::YamlSource)
-    h.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
+    h.source.extend(Humanized::YamlSource)
+    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
     
     h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
     

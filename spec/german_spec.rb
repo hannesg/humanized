@@ -29,7 +29,7 @@ describe Humanized::German do
     it "should work" do
       
       h = Humanized::Humanizer.new
-      h.source[:one] = {
+      h[:one] = {
         :singular => {
           :nominativ => 'one'
         },
@@ -56,7 +56,7 @@ describe Humanized::German do
     it "should work" do
       
       h = Humanized::Humanizer.new
-      h.source[:one] = {
+      h[:one] = {
         :singular => {
           :nominativ => 'one',
           :genitiv => 'ones'
@@ -85,7 +85,7 @@ describe Humanized::German do
     it "should work" do
       
       h = Humanized::Humanizer.new
-      h.source[:user] = {
+      h[:user] = {
         :genus => :male,
         :singular => {
           :nominativ => 'Benutzer'
