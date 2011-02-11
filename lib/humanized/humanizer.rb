@@ -18,18 +18,29 @@ require 'facets/array/extract_options.rb'
 require 'facets/hash/deep_merge.rb'
 require 'sync'
 require 'set'
+require 'humanized/compiler.rb'
+require 'humanized/source.rb'
 module Humanized
 class Humanizer
   
-  DEFAULT_INTERPOLATER = lambda{|humanizer,str,vars| str}
+  class PrivatObject
+    
+    public_instance_methods.each do |meth|
+      private meth
+    end
+    
+  end
   
-  attr_accessor :interpolater, :source
+  attr_reader :interpolater, :source, :compiler
   
-  def initialize(source = {})
-    @interpolater = DEFAULT_INTERPOLATER
-    @source = source
-    @sync = Sync.new
-    @files = Set.new
+  def initialize(components = {})
+    @interpolater = (components[:interpolater] || PrivatObject.new)
+    @compiler = (components[:compiler] || Compiler.new)
+    @source = (components[:source] || Source.new)
+  end
+  
+  def renew(components)
+    self.class.new({:interpolater=>@interpolater,:compiler=>@compiler,:source=>@source}.update(components))
   end
   
   def lookup(base,*rest)
@@ -49,7 +60,7 @@ class Humanizer
     else
       vars = {}
     end
-    result = _get(it)
+    result = @source.get(it)
     if result.kind_of? String
       return interpolate(result,vars)
     elsif result.nil?
@@ -62,118 +73,35 @@ class Humanizer
   
   def get(base,*rest)
     it = base._(*rest)
-    return _get(it)
+    return @source.get(it)
   end
   
   def write(it, *rest)
     last = rest.pop
-    store(it._(*rest).first,last)
+    @source.store(it._(*rest).first,last)
   end
   
   alias_method :[] , :lookup
   alias_method :[]=, :write
   
-  def load(path,opts ={})
-    options = {:scope => L, :grep => '**/*.*'}.update(opts)
-    f = File.join(path,options[:grep])
-    @sync.synchronize(Sync::EX){
-      return nil if @files.include? f
-      @files << f
-      options = {:scope => L, :grep => '**/*.*'}.update(opts)
-      if File.directory?(path)
-        Dir[f].each do |file|
-          data = self.read_file(file)
-          if data
-            xpath = file[path.size..(-1-File.extname(file).size)].split('/')
-            xpath.shift if xpath.first == ''
-            xscope = options[:scope]._(*xpath.map(&:to_sym))
-            self[xscope] = data
-          end
-        end
-      else
-        data = self.read_file(path)
-        if data
-          self[options[:scope]] = data
-        end
-      end
-    }
-    return self
+# bunch of delegated methods
+  
+  def package(*args,&block)
+    @source.package(*args,&block)
+  end
+  
+  def load(*args,&block)
+    @source.load(*args,&block)
+  end
+  
+  def <<(x)
+    @source << x
   end
   
 protected
-
-  def read_file(file)
-    ep = File.expand_path(file)
-    return nil if @files.include? ep
-    @sync.synchronize(Sync::EX){
-      return nil if @files.include? ep
-      @files << ep
-      ext = File.extname(file)[1..-1]
-      meth = "read_#{ext}".to_sym
-      if self.respond_to?(meth)
-        return self.send(meth,file)
-      else
-        warn "No reader found for #{ext}."
-        return nil
-      end
-    }
-  end
-
-  def _get(it)
-    it.each do |path|
-      result = find(path, @source)
-      return result unless result.nil?
-    end
-    return nil
-  end
-  
-  def store(path ,str, hsh = @source)
-    @sync.synchronize(Sync::EX){
-      hshc = hsh
-      l = path.length - 1
-      if str.kind_of? Hash
-        l += 1
-      end
-      (0...l).each do |i|
-        a = path[i]
-        unless hshc.key?(a)
-          hshc[a] = {}
-        end
-        hshc = hshc[a]
-        while hshc.kind_of? Humanized::Ref
-          hshc = store(hshc, str,  @source)
-        end
-      end
-      if str.kind_of? Hash
-        hshc.deep_merge!(str)
-      else
-        hshc[path[l]] = str
-      end
-      return nil
-    }
-  end
-  
-  def find(path, hsh)
-    hshc = hsh
-    l = path.length - 1
-    (0...l).each do |i|
-      a = path[i]
-      return nil unless hshc.key?(a)
-      hshc = hshc[a]
-      while hshc.kind_of? Humanized::Ref
-        hshc = find(hshc, @source)
-      end
-      return nil unless hshc.respond_to? :[]
-    end
-    hshc = hshc[path[l]]
-    while hshc.kind_of? Humanized::Ref
-      hshc = find(hshc, @source)
-    end
-    return hshc
-  end
   
   def interpolate(str,vars={})
-    @interpolater.call(self, str, vars)
+    @compiler.compile(str).call(self,@interpolater,vars)
   end
   
 end
