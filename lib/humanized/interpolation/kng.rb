@@ -106,6 +106,7 @@ protected
   end
 
   def x_to_numerus(x)
+    # seriously: this sucks!
     i = x.to_i
     n = meta_class.const_get :NUMERUS
     if i > 0 and i <= n.size
@@ -113,7 +114,13 @@ protected
     end
     return abbrev_numerus[x]
   end
-    
+  
+  def x_to_i(x)
+    return nil if x.kind_of?(String) and x !~ /\d+/
+    return nil unless x.respond_to? :to_i
+    return x.to_i
+  end
+  
 end
   
 end
