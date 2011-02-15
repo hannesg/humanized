@@ -122,8 +122,7 @@ YAML
     
     it "should format numbers" do
       
-      h = Humanized::Humanizer.new
-      h.interpolater = Humanized::Interpolater.new
+      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
       h.interpolater.extend(Humanized::Number)
       
       
@@ -142,8 +141,7 @@ YAML
     
     it "should translate dates" do
       
-      h = Humanized::Humanizer.new
-      h.interpolater = Humanized::Interpolater.new
+      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
       h.interpolater.extend(Humanized::Date)
       
       t = Time.mktime(2010,10,18,9,58,1)
@@ -160,8 +158,7 @@ YAML
     
     it "should translate numbers" do
       
-      h = Humanized::Humanizer.new
-      h.interpolater = Humanized::Interpolater.new
+      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
       h.interpolater.extend(Humanized::Number)
       
       h[:numeric,:format,:default] = '%d'

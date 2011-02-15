@@ -13,8 +13,8 @@ Gem::Specification.new do |s|
   s.files = Dir.glob("lib/**/**/*")
   
   s.add_dependency "facets"
-  s.add_dependency "parslet"
   
+  s.add_development_dependency "parslet"
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'
   

@@ -14,68 +14,18 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require 'parslet'
 module Humanized
 class Compiler
-  
-  class Parser < Parslet::Parser
-  
-    rule(:body){
-      (match['a-z'].repeat.as(:id) >> (str('|') >> txt.as(:arg)).repeat)
-    }
-    rule(:call){
-      str('[') >> body.as(:args) >> str(']')
-    }
-    rule(:variable){ str('%') >> match['a-z'].repeat }  
-  
-    rule(:plain){ match['^\[\]\|%'].repeat(1) }
-  
-    rule(:txt){ (plain.as(:plain) | call.as(:call) | variable.as(:variable) ).repeat(1) }
-  
-    root(:txt)
-  
-  end
-  
-  class Transform < Parslet::Transform
-  
-    rule(:plain => simple(:plain)){
-      plain.inspect
-    }
-  
-    rule(:variable => simple(:variable)){
-      'variables[:'+variable.to_s[1..-1]+']'
-    }
-  
-    rule(:id => simple(:id)) {
-      id
-    }
-  
-    rule(:arg => sequence(:arg)) {
-      if arg.size == 1
-        arg.first
-      else
-        '[' + arg.join(',') + '].join'
-      end
-    }
-  
-    rule(:args => sequence(:args)) {
-      'interpolater.' + args.first + '(humanizer,' + args[1..-1].join(',') + ')'
-    }
-  
-    rule(:args => simple(:args)) {
-      'interpolater.' + args + '(humanizer)'
-    }
-  
-    rule(:call => simple(:call)) {
-      call
-    }
-  
-  
-  end
   
   class Compiled < Proc
   
     attr_accessor :str
+  
+    def initialize(str)
+      @str = str
+      super()
+      return self
+    end
   
     def to_s
       @str
@@ -84,22 +34,90 @@ class Compiler
   end
 
   def initialize
-    @parser = Parser.new
-    @transformer = Transform.new
     @compiled = Hash.new{|hsh,x| hsh[x] = compile!(x)}
   end
 
-  def compile(c)
-    @compiled[c]
+# Compiles a String into a Proc
+# @param [String] str A formated String
+# @return A Proc, which will handle interpolation.
+#
+  def compile(str)
+    @compiled[str]
+  end
+protected
+  
+  VAR_REGEXP = /^%([a-z_]+)/
+  CALL_START_REGEXP = /^\[([a-z]+)[\]\|]/
+  END_REGEXP = /[\[\]%\|]/
+  
+  TRANSFORMER = lambda{|token|
+    if token.kind_of? Array
+      "[#{token.map(&TRANSFORMER).join(',')}].join()"
+    elsif token.kind_of? String
+      token.inspect
+    elsif token.kind_of? Symbol
+      "variables[#{token.inspect}]"
+    elsif token.kind_of? Hash
+      "interpolater.#{token[:method]}(humanizer,#{token[:args].map(&TRANSFORMER).join(',')})"
+    end
+  }
+  
+  def compile!(str)
+    return eval('Compiled.new(str){|humanizer,interpolater,variables| ' + TRANSFORMER.call(read(str)) +' }')  
   end
   
-protected
-  def compile!(tree)
-    str = 'Compiled.new{|humanizer,interpolater,variables| ' + @transformer.apply(:arg=>@parser.parse(tree)) +' }'
-    c = eval(str)
-    c.str = tree
-    return c
+  def read(str)
+    result = []
+    rest = str
+    while( rest.size > 0 )
+      token, rest = read_one(rest)
+      result << token
+    end
+    return result
+  end
+  
+  def read_one(str)
+    return str,str if str.size == 0
+    match = nil
+    if str =~ VAR_REGEXP
+      return $1.to_sym, str[($1.size+1)..-1]
+    elsif str =~ CALL_START_REGEXP
+      method = $1
+      args = []
+      rest = str[($1.size+1)..-1]
+      while rest[0] != ?]
+        arg = []
+        rest = rest[1..-1]
+        while rest[0] != ?| and rest[0] != ?]
+          token, rest = read_one(rest)
+          if rest.size == 0
+            return str, ''
+          end
+          arg << token
+        end
+        if rest.size == 0
+          return str, ''
+        end
+        if arg.size == 0
+          args << ''
+        elsif arg.size == 1
+          args << arg.first
+        else
+          args << arg
+        end
+        
+      end
+      return {:method=>method,:args=>args},rest[1..-1]
+      return {:method=>method,:args=>args},str[($1.size+2)..-1]
+    elsif match = END_REGEXP.match(str)
+      if match.pre_match.size == 0
+        return str[0..1], str[1..-1]
+      end
+      return match.pre_match, match[0] + match.post_match
+    end
+    return str, ''
   end
 
 end
+  
 end
