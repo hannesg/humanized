@@ -21,29 +21,45 @@ require 'set'
 require 'humanized/compiler.rb'
 require 'humanized/source.rb'
 module Humanized
+# A Humanizer has one simple task: create strings
+# To accomplish this it needs to do three independend steps:
+# * find out which string to use ( this is done by the source )
+# * parse the markup in that string ( this is done by the compiler )
+# * interpolate it using the given variables ( this is done by the interpolater )
+# The basic idea is that you create one Humanizer for every language/dialect/locale/whatever. However these can share one these three steps.
+# For example, if you want to use the same markup in every string, you only need to create on compiler and can use that on every humanizer you have.
 class Humanizer
   
+  # This is a simple object without public methods. You can use this as a collection for interpolation methods.
   class PrivatObject
-    
     public_instance_methods.each do |meth|
       private meth
     end
-    
   end
   
   attr_reader :interpolater, :source, :compiler
   
+# Creates a new Humanizer
+#
+# @option components [Object] :interpolater This object which has all interpolation methods defined as public methods.
+# @option components [Compiler] :compiler A compiler which can compile strings into procs. (see Compiler)
+# @option components [Source] :source A source which stores translated strings. (see Source)
   def initialize(components = {})
     @interpolater = (components[:interpolater] || PrivatObject.new)
     @compiler = (components[:compiler] || Compiler.new)
     @source = (components[:source] || Source.new)
   end
   
+# Creates a new Humanizer which uses the interpolater, compiler and source of this Humanizer unless other values for them were specified.
+# @see #initialize
   def renew(components)
     self.class.new({:interpolater=>@interpolater,:compiler=>@compiler,:source=>@source}.update(components))
   end
   
-  def lookup(base,*rest)
+# Creates a String from the input. This will be the most used method in application code.
+# 
+# @return [String]
+  def [](base,*rest)
     #TODO: maybe all the special cases could be realized as
     # a simple Hash[ Class => String ] ?
     if base.kind_of? String
@@ -55,7 +71,7 @@ class Humanizer
     else
       it = base._(*rest)
     end
-    if it.kind_of? ScopeWithVariables
+    if it.kind_of? Scope::WithVariables
       vars = it.variables
     else
       vars = {}
@@ -70,30 +86,35 @@ class Humanizer
     end
     return result
   end
-  
+
+# This is a wrapper for @source.get.
+# The only thing it does additionally is converting all params into a Scope.
+# @see Source#get
   def get(base,*rest)
     it = base._(*rest)
     return @source.get(it)
   end
-  
-  def write(it, *rest)
+
+# Stores a translation
+  def []=(it, *rest)
     last = rest.pop
     @source.store(it._(*rest).first,last)
   end
   
-  alias_method :[] , :lookup
-  alias_method :[]=, :write
-  
-# bunch of delegated methods
-  
+# This is an alias for @source.package
+# @see Source#package
   def package(*args,&block)
     @source.package(*args,&block)
   end
   
+# This is an alias for @source.load
+# @see Source#load
   def load(*args,&block)
     @source.load(*args,&block)
   end
   
+# This is an alias for @source.<<
+# @see Source#<<
   def <<(x)
     @source << x
   end

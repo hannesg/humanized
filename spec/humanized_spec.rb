@@ -46,15 +46,19 @@ describe Humanized do
     Humanized(Testing::Admin).should == Humanized::Scope.new([[:testing,:admin],[:testing,:user]])
     
   end
-=begin
+
   describe Humanized::Scope do
     
-    Humanized::ScopeParslet.scope_from_str('a.b.c')
-    Humanized::ScopeParslet.scope_from_str('a.(b,x.e).c')
-    Humanized::ScopeParslet.scope_from_str('(a.b,x.e)')
+    it "should be awesome" do
+      
+      s = Humanized::Scope.new
+      (s.a | s.b).should == Humanized::Scope.new([[:a],[:b]])
+      s._{ a | b }.should == Humanized::Scope.new([[:a],[:b]])
+      
+    end
     
   end
-=end
+
   describe "[]" do
     
     it "should work" do

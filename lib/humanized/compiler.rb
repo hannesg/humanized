@@ -108,7 +108,6 @@ protected
         
       end
       return {:method=>method,:args=>args},rest[1..-1]
-      return {:method=>method,:args=>args},str[($1.size+2)..-1]
     elsif match = END_REGEXP.match(str)
       if match.pre_match.size == 0
         return str[0..1], str[1..-1]

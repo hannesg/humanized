@@ -19,6 +19,7 @@ require "facets/module/basename.rb"
 require "facets/module/anonymous.rb"
 require "facets/module/alias_method_chain.rb"
 
+require "humanized/scope"
 def Humanized(obj)
   return obj.humanization_key
 end
@@ -39,7 +40,7 @@ module Humanized
     end
     
     def humanization_key_with_genus
-      return humanization_key_without_genus.optionaly(self.genus)
+      return humanization_key_without_genus.optionally(self.genus)
     end
     
     
@@ -55,172 +56,6 @@ module Humanized
     end
     
   end
-
-  class Scope
-    
-    include Enumerable
-  
-    NAME_REGEX = /[a-z_]+/.freeze
-    OPTIONAL_NAME_REGEX = /([a-z_]+)\?/.freeze
-    
-    attr_accessor :path, :depth
-  
-    def self.from_str(str)
-      Scope.new([ str.explode('.').map(&:to_sym) ])
-    end
-  
-    def initialize(path = [[]], depth = 1)
-      @path = path.uniq
-      @path.each do |path|
-        path.freeze
-      end
-      @path.freeze
-      @depth = depth
-    end
-  
-    def method_missing(name, *args, &block)
-      name_str = name.to_s
-      if OPTIONAL_NAME_REGEX =~ name_str
-        return ( self + $1 | self )._(*args,&block)
-      end
-      if NAME_REGEX =~ name_str
-        return ( self + name )._(*args,&block)
-      end
-      super
-    end
-    
-    def ==(other)
-      return false unless other.kind_of? Scope
-      return @path == other.path
-    end
-    
-    def |(other)
-      return other if @path.none?
-      sp = self.path
-      sd = self.depth
-      op = other.path
-      od = other.depth
-      result = []
-      i = 0
-      j = 0
-      while i < sp.size and j < op.size
-        result.concat sp[i,sd] if sp.size > i
-        result.concat op[j,od] if op.size > j
-        i = i + sd
-        j = j + od
-      end
-      return Scope.new( result, sd + od )
-    end
-  
-    def include?(path)
-      return @path.include? path
-    end
-    
-    def optionaly(k)
-      return self._(k) | self
-    end
-    
-    def [](*args)
-      sp = self.path
-      sd = self.depth
-      op = args
-      od = 1
-      result = []
-      self.each do |path|
-        args.each do |arg|
-          result << path.concat([arg])
-        end
-      end
-      return Scope.new( result, args.size )
-    end
-    
-    def +(*args)
-      return self if args.none?
-      if( args.first.kind_of? Scope )
-        return args.first if @path.none?
-        # TODO: maybe modify depth too?
-        new_path = []
-        @path.each do |x|
-          args.first.each do |path|
-            new_path << x + path
-          end
-        end
-        return Scope.new(new_path,args.first.depth)
-      end
-      if @path.none?
-        return Scope.new( [args] , 1 )
-      end
-      return Scope.new( @path.map{|x| x + args} , @depth )
-    end
-    
-    def _(*args,&block)
-      thiz = self
-      vars = nil
-      loop do
-        return thiz if args.none?
-        arg = args.shift
-        if arg.kind_of? Symbol or arg.kind_of? Scope
-          thiz += arg
-        elsif arg.kind_of? Hash
-          vars = arg
-        else
-          thiz += arg._
-        end
-      end
-      if block_given?
-        thiz = thiz.instance_eval(&block)
-      end
-      if vars
-        return thiz.with_variables(arg)
-      else
-        return thiz
-      end
-    end
-  
-    def with_variables(vars)
-      ScopeWithVariables.new(@path, @depth, vars)
-    end
-  
-    def inspect
-      return '(' + @path.map{|p| p.join '.'}.join(' , ') + ')'
-    end
-  
-    #alias_method :to_str, :inspect
-    #def to_ary
-    #  @path
-    #end
-  
-    def each(&block)
-      @path.each(&block)
-    end
-  
-    def humanization_key
-      return self
-    end
-  end
-
-
-  class ScopeWithVariables < Scope
-    
-    attr_accessor :variables
-    
-    def initialize(path = [[]], depth = 1, vars = {})
-      super(path,depth)
-      @variables = vars
-    end
-    
-    def to_ary
-      [self, @variables]
-    end
-    
-    def with_variables(vars)
-      ScopeWithVariables.new(@path, @depth, @variables.merge(vars))
-    end
-    
-  end
-  
-  L = Scope.new([[]],1)
-  None = Scope.new([],0)
   
   def humanization_key!
     if self.anonymous?
@@ -230,7 +65,7 @@ module Humanized
     if h != Object and h.respond_to? :humanization_key
       result = h.humanization_key + self.basename.downcase.to_sym
     else
-      result = L.+(*self.name.split('::').map{|s| s.downcase.to_sym })
+      result = Scope::Root.+(*self.name.split('::').map{|s| s.downcase.to_sym })
     end
     thiz = self
     if defined? thiz.superclass and self.superclass != Object
@@ -273,7 +108,7 @@ class Array
     if self.any?
       return self[0]._(*self[1..-1])._(*args,&block)
     else
-      Humanized::None
+      Humanized::Scope::None
     end
   end
 end

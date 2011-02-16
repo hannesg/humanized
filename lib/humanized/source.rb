@@ -16,7 +16,8 @@
 #
 require 'sync'
 module Humanized
-class Source < Hash
+# A source lets you lookup,store and load data needed for humanization.
+class Source
   
   def initialize()
     @source = {}
@@ -24,8 +25,15 @@ class Source < Hash
     @loaded = Set.new
   end
   
+#
+# Loads a data-file or a dir of data-files.
+#
+# @param [String] path to a dir or file
+# @option opts [Scope] :scope the root scope, where the loaded data will be stored ( default: L )
+# @option opts [String] :grep a grep to be used when a dir is given ( default: '**/*.*' )
+# @return self
   def load(path,opts ={})
-    options = {:scope => L, :grep => '**/*.*'}.update(opts)
+    options = {:scope => Scope::Root, :grep => '**/*.*'}.update(opts)
     if File.directory?(path)
       f = File.join(path,options[:grep])
       package('grep:' + f) do
@@ -52,10 +60,26 @@ class Source < Hash
     return self
   end
 
-  def <<(x)
-    store([],x)
+# Stores the given data on the base.
+# @param [Object] data
+# @see #store
+  def <<(data)
+    store([],data)
   end
 
+# This is method which will help you loading data once.
+# It will load every package just one time.
+# == Example
+#  source = Source.new
+#  10.times do
+#    source.package('base') do |s|
+#      s << {:base => { :data => 'more data'}} # <= This data will be only loaded once!
+#    end
+#  end
+#
+# @param [String] package name
+# @yields
+# @yieldparam [Source] self
   def package(name)
     return nil if @loaded.include? name
     @sync.synchronize(Sync::EX){
@@ -65,15 +89,27 @@ class Source < Hash
     }
   end
 
-  def get(it)
-    it.each do |path|
+# Retrieves data
+# @param [Scope, #each] scope a scope containing the paths to search for
+# @return [String, Object, nil] data
+  def get(scope)
+    scope.each do |path|
       result = find(path, @source)
       return result unless result.nil?
     end
     return nil
   end
+
+# Stores data at the path
+# @param [Array] path a path to store the data at
+# @param [Object] data the data to store
+  def store(path ,data)
+    store!(path, data)
+  end
   
-  def store(path ,str, hsh = @source)
+protected
+  
+  def store!(path ,str, hsh = @source)
     @sync.synchronize(Sync::EX){
       hshc = hsh
       l = path.length - 1
@@ -87,7 +123,7 @@ class Source < Hash
         end
         hshc = hshc[a]
         while hshc.kind_of? Humanized::Ref
-          hshc = store(hshc, str,  @source)
+          hshc = store!(hshc, str,  @source)
         end
       end
       if str.kind_of? Hash
@@ -98,8 +134,6 @@ class Source < Hash
       return nil
     }
   end
-  
-protected
   
   def read_file(file)
     ext = File.extname(file)[1..-1]
