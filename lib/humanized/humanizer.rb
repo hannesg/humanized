@@ -21,13 +21,14 @@ require 'set'
 require 'humanized/compiler.rb'
 require 'humanized/source.rb'
 module Humanized
-# A Humanizer has one simple task: create strings
+# A Humanizer has one simple task: create strings!
+#
 # To accomplish this it needs to do three independend steps:
 # * find out which string to use ( this is done by the source )
 # * parse the markup in that string ( this is done by the compiler )
 # * interpolate it using the given variables ( this is done by the interpolater )
-# The basic idea is that you create one Humanizer for every language/dialect/locale/whatever. However these can share one these three steps.
-# For example, if you want to use the same markup in every string, you only need to create on compiler and can use that on every humanizer you have.
+# The basic idea is that you create one Humanizer for every language/dialect/locale/whatever. However these can share any of these three components.
+# For example, if you want to use the same markup in every string, you only need to create one compiler and can use that in every humanizer you have.
 class Humanizer
   
   # This is a simple object without public methods. You can use this as a collection for interpolation methods.
@@ -62,26 +63,15 @@ class Humanizer
   def [](base,*rest)
     #TODO: maybe all the special cases could be realized as
     # a simple Hash[ Class => String ] ?
-    if base.kind_of? String
-      return base
-    elsif base.kind_of?(Time) or base.kind_of?(::Date)
-      return interpolate('[date|%time|%format]',{:time => base,:format => rest})
-    elsif base.kind_of? Numeric
-      return interpolate('[number|%number|%format]',{:number => base,:format => rest})
-    else
-      it = base._(*rest)
-    end
-    if it.kind_of? Scope::WithVariables
-      vars = it.variables
-    else
-      vars = {}
-    end
-    result = @source.get(it)
+    it = base._(*rest)
+    
+    vars = it.variables
+    default = it.default
+    result = @source.get(it, default)
+    result = default unless result.kind_of? String
     if result.kind_of? String
       return interpolate(result,vars)
-    elsif result.nil?
-      warn "Translation missing: #{it.inspect}."
-    else
+    elsif default.__id__ != result.__id__
       warn "[] should be only used for strings. For anything else use get."
     end
     return result
@@ -92,7 +82,7 @@ class Humanizer
 # @see Source#get
   def get(base,*rest)
     it = base._(*rest)
-    return @source.get(it)
+    return @source.get(it, it.default)
   end
 
 # Stores a translation

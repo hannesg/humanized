@@ -130,12 +130,12 @@ YAML
       h.interpolater.extend(Humanized::Number)
       
       
-      h[:numeric, :format, :default]='%d'
-      h[:numeric, :format, :scientific]='%e'
+      h[:numeric, :format ,:default]='%d'
+      h[:numeric, :format ,:scientific]='%e'
       
       h[2].should == '2'
-      h[2, :scientific].should == '2.000000e+00'
-      h[2, :weird].should == '2'
+      h[2, {:format => :scientific}].should == '2.000000e+00'
+      h[2, {:format => :weird}].should == '2'
       
     end
     
@@ -153,6 +153,10 @@ YAML
       h[t,:format,:default] = '%Y-%m-%d %H:%M:%S'
       
       h.interpolater.call(h,'[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d %H:%M:%S')
+      
+      h[t].should == t.strftime('%Y-%m-%d %H:%M:%S')
+      
+      h[t, {:format => :default} ].should == t.strftime('%Y-%m-%d %H:%M:%S')
       
     end
     

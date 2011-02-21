@@ -92,12 +92,12 @@ class Source
 # Retrieves data
 # @param [Scope, #each] scope a scope containing the paths to search for
 # @return [String, Object, nil] data
-  def get(scope)
+  def get(scope, default = nil)
     scope.each do |path|
       result = find(path, @source)
       return result unless result.nil?
     end
-    return nil
+    return default
   end
 
 # Stores data at the path

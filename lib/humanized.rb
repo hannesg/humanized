@@ -112,3 +112,29 @@ class Array
     end
   end
 end
+
+class String
+  def _(*args,&block)
+    Humanized::Scope::None._(*args,&block).with_default(self)
+  end
+end
+class NilClass
+  def _(*args,&block)
+    Humanized::Scope::None._(*args,&block)
+  end
+end
+class Numeric
+  def _(*args,&block)
+    self.humanization_key.with_variables(:number=>self, :format =>:default).with_default('[number|%number|%format]')._(*args,&block)
+  end
+end
+class Time
+  def _(*args,&block)
+    self.humanization_key.with_variables(:time=>self, :format =>:default).with_default('[date|%time|%format]')._(*args,&block)
+  end
+end
+class Date
+  def _(*args,&block)
+    self.humanization_key.with_variables(:time=>self, :format =>:default).with_default('[date|%time|%format]')._(*args,&block)
+  end
+end

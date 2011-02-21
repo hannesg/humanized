@@ -14,22 +14,17 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+require 'yajl'
 module Humanized
-module Date
   
-  def date(humanizer, date, format = 'default')
-    if format == 'default'
-      it = date._(:format,:default)
-    else
-      it = date._.format( format._ | :default._ )
-    end
-    f = humanizer.get(it)
-    if f.kind_of? String
-      return date.strftime( f )
-    end
-    warn 'Unable to find Date format: #{it.inspect}.'
-    return ''
+module JsonSource
+  
+  PARSER = Yajl::Parser.new(:symbolize_keys => true)
+  
+  def read_json(file)
+    PARSER.parse( File.open(file) )
   end
   
 end
+  
 end

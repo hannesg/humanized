@@ -16,27 +16,8 @@
 #
 module Humanized
 # A Scope is basically an array of paths which could be looked up in a Source.
-# To make the Scope handling a lot easier there are a lot of handy methods.
+# To make the Scope handling a lot easier, there are a lot of handy methods.
   class Scope
-    
-    class WithVariables < self
-    
-      attr_accessor :variables
-      
-      def initialize(path = [[]], depth = 1, vars = {})
-        super(path,depth)
-        @variables = vars
-      end
-      
-      def to_ary
-        [self, @variables]
-      end
-      
-      def with_variables(vars)
-        Scope::WithVariables.new(@path, @depth, @variables.merge(vars))
-      end
-      
-    end
     
     include Enumerable
     
@@ -45,21 +26,22 @@ module Humanized
 # @private
     OPTIONAL_NAME_REGEX = /([a-z_]+)\?/.freeze
     
-    attr_reader :path, :depth
+    attr_reader :path, :depth, :variables, :default
   
     def self.from_str(str)
       Scope.new([ str.explode('.').map(&:to_sym) ])
     end
   
-    def initialize(path = [[]], depth = 1)
+    def initialize(path = [[]], depth = 1, variables = {}, default = nil)
       @path = path.uniq
       @path.each do |path|
         path.freeze
       end
       @path.freeze
       @depth = depth
+      @variables = variables
+      @default = default
     end
-
 
 # This method is a here to enable awesome DSL.
 #== Example
@@ -99,7 +81,7 @@ module Humanized
         i = i + sd
         j = j + od
       end
-      return Scope.new( result, sd + od )
+      return Scope.new( result, sd + od , other.variables, other.default)
     end
   
     def include?(path)
@@ -127,20 +109,21 @@ module Humanized
     def +(*args)
       return self if args.none?
       if( args.first.kind_of? Scope )
-        return args.first if @path.none?
+        s = args.first
+        return Scope.new(@path, @depth, variables.merge(s.variables), s.default ) if @path.none? or s.path.none?
         # TODO: maybe modify depth too?
         new_path = []
         @path.each do |x|
-          args.first.each do |path|
+          s.each do |path|
             new_path << x + path
           end
         end
-        return Scope.new(new_path,args.first.depth)
+        return Scope.new(new_path, s.depth, variables.merge(s.variables), s.default )
       end
       if @path.none?
-        return Scope.new( [args] , 1 )
+        return self
       end
-      return Scope.new( @path.map{|x| x + args} , @depth )
+      return Scope.new( @path.map{|x| x + args} , @depth , @variables, @default)
     end
     
     def _(*args,&block)
@@ -161,24 +144,23 @@ module Humanized
         thiz = thiz.instance_eval(&block)
       end
       if vars
-        return thiz.with_variables(arg)
+        return thiz.with_variables(vars)
       else
         return thiz
       end
     end
   
     def with_variables(vars)
-      Scope::WithVariables.new(@path, @depth, vars)
+      Scope.new(@path, @depth, variables.merge(vars), @default)
+    end
+    
+    def with_default(default)
+      Scope.new(@path, @depth, @variables, default)
     end
   
     def inspect
-      return '(' + @path.map{|p| p.join '.'}.join(' , ') + ')'
+      return '(' + @path.map{|p| p.join '.'}.join(' , ') + ' v='+variables.inspect+' d='+default.inspect+')'
     end
-  
-    #alias_method :to_str, :inspect
-    #def to_ary
-    #  @path
-    #end
   
     def each(&block)
       @path.each(&block)
@@ -190,6 +172,7 @@ module Humanized
     
     Root = self.new([[]],1)
     None = self.new([],0)
+    
     
   end
 end
