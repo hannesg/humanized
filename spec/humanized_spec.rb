@@ -45,6 +45,12 @@ describe Humanized do
     Humanized(Testing::User).should == Humanized::Scope.new([[:testing,:user]])
     Humanized(Testing::Admin).should == Humanized::Scope.new([[:testing,:admin],[:testing,:user]])
     
+    [Testing::User, :x]._.should == Humanized::Scope.new([[:testing,:user,:x]])
+    
+    []._.should == Humanized::Scope::None
+    
+    nil._.should == Humanized::Scope::None
+    
   end
 
   describe Humanized::Scope do
@@ -53,7 +59,50 @@ describe Humanized do
       
       s = Humanized::Scope.new
       (s.a | s.b).should == Humanized::Scope.new([[:a],[:b]])
+      
       s._{ a | b }.should == Humanized::Scope.new([[:a],[:b]])
+      
+      s._(:a,Testing::User).should == Humanized::Scope.new([[:a,:testing,:user]])
+      
+    end
+    
+    it "scope._ should equal scope" do
+      
+      s = Humanized::Scope.new
+      
+      s._.should == s
+      
+      s.humanization_key.should == s
+      
+    end
+    
+    it "should support optional elements" do
+      
+      s = Humanized::Scope.new([[:mandatory]]).optional?
+      
+      s.should == Humanized::Scope.new([[:mandatory,:optional],[:mandatory]],2)
+      
+      Humanized::Scope.new[:to_be, :not_to_be].is_the_question.should == Humanized::Scope.new([[:to_be,:is_the_question],[:not_to_be,:is_the_question]])
+      
+    end
+    
+    describe "the empty scope" do
+      
+      it "should stay empty" do
+        
+        Humanized::Scope::None._(:x).should == Humanized::Scope::None
+        
+      end
+      
+      it "should always be looked up to its default" do
+        
+        d = "default!"
+        
+        h = Humanized::Humanizer.new
+        
+        h[Humanized::Scope::None.with_default(d)].should == d
+        
+      end
       
     end
     
@@ -126,7 +175,7 @@ YAML
     
     it "should format numbers" do
       
-      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
+      h = Humanized::Humanizer.new(:interpolater => Humanized::Humanizer::PrivatObject.new)
       h.interpolater.extend(Humanized::Number)
       
       
@@ -145,14 +194,14 @@ YAML
     
     it "should translate dates" do
       
-      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
+      h = Humanized::Humanizer.new
       h.interpolater.extend(Humanized::Date)
       
       t = Time.mktime(2010,10,18,9,58,1)
       
       h[t,:format,:default] = '%Y-%m-%d %H:%M:%S'
       
-      h.interpolater.call(h,'[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d %H:%M:%S')
+      h.interpolate('[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d %H:%M:%S')
       
       h[t].should == t.strftime('%Y-%m-%d %H:%M:%S')
       
@@ -166,12 +215,12 @@ YAML
     
     it "should translate numbers" do
       
-      h = Humanized::Humanizer.new(:interpolater => Humanized::Interpolater.new)
+      h = Humanized::Humanizer.new
       h.interpolater.extend(Humanized::Number)
       
       h[:numeric,:format,:default] = '%d'
       
-      h.interpolater.call(h,'[number|%n]',{:n => 2.4}).should == '2'
+      h.interpolate('[number|%n]',{:n => 2.4}).should == '2'
       
     end
     

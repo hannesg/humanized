@@ -53,7 +53,7 @@ module Humanized
     def method_missing(name, *args, &block)
       name_str = name.to_s
       if OPTIONAL_NAME_REGEX =~ name_str
-        return ( self + $1 | self )._(*args,&block)
+        return ( self + $1.to_sym | self )._(*args,&block)
       end
       if NAME_REGEX =~ name_str
         return ( self + name )._(*args,&block)
@@ -100,7 +100,7 @@ module Humanized
       result = []
       self.each do |path|
         args.each do |arg|
-          result << path.concat([arg])
+          result << path + [arg]
         end
       end
       return Scope.new( result, args.size )
@@ -159,7 +159,7 @@ module Humanized
     end
   
     def inspect
-      return '(' + @path.map{|p| p.join '.'}.join(' , ') + ' v='+variables.inspect+' d='+default.inspect+')'
+      return '(' + @path.map{|p| p.join '.'}.join(' , ') + ' '+depth.to_s+' v='+variables.inspect+' d='+default.inspect+')'
     end
   
     def each(&block)

@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'bundler'
-Bundler.setup(:development, :default)
-Bundler.require(:development, :default)
+Bundler.setup(:development, :default, :testing)
+Bundler.require(:development, :default, :testing)
 require 'rake'
 require 'rake/gempackagetask'
 require 'rspec/core/rake_task'
@@ -16,5 +16,7 @@ end
 
 RSpec::Core::RakeTask.new do |t|
   t.rspec_opts = ["-c", "-f progress"]
+  t.rcov = true
+  t.rcov_opts = "--aggregate coverage.data --text-summary --exclude spec,lib/humanized/extras"
   t.pattern = 'spec/**/*_spec.rb'
 end

@@ -36,6 +36,9 @@ class Humanizer
     public_instance_methods.each do |meth|
       private meth
     end
+    
+    public :extend
+    
   end
   
   attr_reader :interpolater, :source, :compiler
@@ -108,8 +111,6 @@ class Humanizer
   def <<(x)
     @source << x
   end
-  
-protected
   
   def interpolate(str,vars={})
     @compiler.compile(str).call(self,@interpolater,vars)

@@ -45,17 +45,6 @@ module Humanized
     
     
   end
-
-  class TranslationMissing < StandardError
-    
-    attr_reader :keys
-    
-    def initialize(keys)
-      @keys = keys
-      super("Missing Translation: #{keys.inspect}")
-    end
-    
-  end
   
   def humanization_key!
     if self.anonymous?
@@ -83,7 +72,6 @@ module Humanized
   end
 
 end
-require "humanized/interpolater.rb"
 require "humanized/ref.rb"
 require "humanized/humanizer.rb"
 

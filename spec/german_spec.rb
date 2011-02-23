@@ -38,14 +38,13 @@ describe Humanized::German do
         }
       }
       
-      i = Humanized::Interpolater.new
-      i.extend(Humanized::German)
+      h.interpolater.extend(Humanized::German)
       
-      i.call(h,'[n|%i|one|other]',:i => 1).should == 'one'
-      i.call(h,'[n|%i|one|other]',:i => 2).should == 'other'
+      h.interpolate('[n|%i|one|other]',:i => 1).should == 'one'
+      h.interpolate('[n|%i|one|other]',:i => 2).should == 'other'
       
-      i.call(h,'[n|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
-      i.call(h,'[n|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
+      h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
+      h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
       
     end
     
@@ -67,14 +66,13 @@ describe Humanized::German do
         }
       }
       
-      i = Humanized::Interpolater.new
-      i.extend(Humanized::German)
+      h.interpolater.extend(Humanized::German)
       
-      i.call(h,'[kn|nominativ|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
-      i.call(h,'[kn|nominativ|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
+      h.interpolate('[kn|nominativ|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
+      h.interpolate('[kn|nominativ|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
       
-      i.call(h,'[kn|genitiv|%i|%thing]',:i => 1,:thing=>:one).should == 'ones'
-      i.call(h,'[kn|genitiv|%i|%thing]',:i => 2,:thing=>:one).should == 'others'
+      h.interpolate('[kn|genitiv|%i|%thing]',:i => 1,:thing=>:one).should == 'ones'
+      h.interpolate('[kn|genitiv|%i|%thing]',:i => 2,:thing=>:one).should == 'others'
       
     end
     
@@ -104,18 +102,17 @@ describe Humanized::German do
         
       end
       
-      i = Humanized::Interpolater.new
-      i.extend(Humanized::German)
+      h.interpolater.extend(Humanized::German)
       
-      i.call(h,'[kng|nominativ|1|m|%thing]',:thing=>:user).should == 'Benutzer'
-      i.call(h,'[kng|nominativ|1|f|%thing]',:thing=>:user).should == 'Benutzerin'
+      h.interpolate('[kng|nominativ|1|m|%thing]',:thing=>:user).should == 'Benutzer'
+      h.interpolate('[kng|nominativ|1|f|%thing]',:thing=>:user).should == 'Benutzerin'
       
       #TODO: this doesn't really fit here:'
-      i.call(h,'[kn|nominativ|1|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
-      i.call(h,'[kn|nominativ|1|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
+      h.interpolate('[kn|nominativ|1|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
+      h.interpolate('[kn|nominativ|1|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
       
-      i.call(h,'[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
-      i.call(h,'[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
+      h.interpolate('[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
+      h.interpolate('[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
       
     end
     
