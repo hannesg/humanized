@@ -104,6 +104,14 @@ describe Humanized do
         
       end
       
+      it "should not interfere with or" do
+        
+        s = Humanized::Scope.new([[:a,:b]])
+        
+        ( s | Humanized::Scope::None ).should == s
+        
+      end
+      
     end
     
   end

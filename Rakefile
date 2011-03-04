@@ -17,6 +17,6 @@ end
 RSpec::Core::RakeTask.new do |t|
   t.rspec_opts = ["-c", "-f progress"]
   t.rcov = true
-  t.rcov_opts = "--aggregate coverage.data --text-summary --exclude spec,lib/humanized/extras"
+  t.rcov_opts = "--aggregate coverage.data --text-summary --exclude spec"
   t.pattern = 'spec/**/*_spec.rb'
 end

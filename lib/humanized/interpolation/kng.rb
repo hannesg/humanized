@@ -14,50 +14,56 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+require 'set'
 require 'abbrev'
 require 'facets/kernel/meta_class.rb'
+require "humanized/interpolation/conjunctions"
 module Humanized
   
 module KNG
-    
+  
+  include Conjunctions
+  
+  def g(humanizer, genus, *args)
+    if args.size == 3
+      # male, female, neutral
+      genus = x_to_genus(humanizer, genus)
+      return [:male,:female,:neutral].zip(args).assoc(genus)[1]
+    end
+  end
+  
   def n(humanizer, numerus, *args)
     if args.size == 2
       # singular, plural
-      return args[ x_to_numerus(numerus) == :singular ? 0 : 1 ]
+      return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      arg = args.first
-      if arg.kind_of? String
-        arg = Scope.from_str(arg)
+      return each(args) do |arg|
+        humanizer.get( arg , x_to_numerus(humanizer, numerus), meta_class.const_get(:KASUS).first.to_sym)
       end
-      return humanizer.get( arg , x_to_numerus(numerus), meta_class.const_get(:KASUS).first.to_sym)
     end
   end
   
   def kn(humanizer, kasus, numerus, *args)
     if args.size == 2
       # singular, plural
-      return args[ x_to_numerus(numerus) == :singular ? 0 : 1 ]
+      return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      arg = args.first
-      if arg.kind_of? String
-        arg = Scope.from_str(arg)
+      return each(args) do |arg| 
+             humanizer.get( arg, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
       end
-      return humanizer.get( arg, x_to_numerus(numerus), x_to_kasus(kasus) )
     end
   end
   
   def kng(humanizer, kasus, numerus, genus,*args)
     if args.size == 2
       # singular, plural
-      return args[ x_to_numerus(numerus) == :singular ? 0 : 1 ]
+      return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      arg = args.first
-      if arg.kind_of? String
-        arg = Scope.from_str(arg)
+      return each(args) do |arg|
+        k = arg._
+        k = k._(x_to_genus(humanizer, genus)) | k
+        humanizer.get( k, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
       end
-      k = arg._
-      k = k._(x_to_genus(genus)) | k
-      return humanizer.get( k, x_to_numerus(numerus), x_to_kasus(kasus) )
     end
   end
   
@@ -84,19 +90,50 @@ protected
     return @abbrev_genus
   end
   
-  def x_to_genus(x)
+  def merge_genus(a,b)
+    if a.kind_of? Set
+      if b.kind_of? Set
+        return a + b
+      else
+        return a + [b]
+      end
+    else
+      if b.kind_of? Set
+        return b + [a]
+      else
+        return Set.new([a,b])
+      end
+    end
+  end
+  
+  def x_to_genus(humanizer, x)
     if x.kind_of? HasNaturalGenus
       return x.genus
     end
-    i = x.to_i
-    g = meta_class.const_get :GENUS
-    if i > 0 and i <= g.size
-      return g[i-1].to_sym
+    if x.kind_of? Array
+      # TODO: this is inefficient...
+      # IDEA 1: plug in something like Array.of(...)
+      s = Set.new
+      x.each do |o|
+        s = merge_genus( x_to_genus(humanizer, o) )
+        if s.size == 3
+          break
+        end
+      end
+      return s
     end
-    return abbrev_genus[x]
+    if x.kind_of? String
+      return abbrev_genus[x]
+    end
+    genus = humanizer.get(x._(:genus))
+    if genus.kind_of? Symbol
+      return genus
+    else
+      return :neutral
+    end
   end
 
-  def x_to_kasus(x)
+  def x_to_kasus(humanizer, x)
     i = x.to_i
     c = meta_class.const_get :KASUS
     if i > 0 and i <= c.size
@@ -105,19 +142,35 @@ protected
     return abbrev_kasus[x]
   end
 
-  def x_to_numerus(x)
+  def x_to_numerus(humanizer, x)
     # seriously: this sucks!
-    i = x.to_i
-    n = meta_class.const_get :NUMERUS
-    if i > 0 and i <= n.size
-      return n[i-1].to_sym
+    if x.kind_of? String
+      return abbrev_numerus[x]
     end
-    return abbrev_numerus[x]
+    i = x_to_i(humanizer, x)
+    if i
+      if i == 1
+        return :singular
+      else
+        return :plural
+      end
+    end
+    numerus = humanizer.get(x._(:numerus))
+    if numerus.kind_of? Symbol
+      return numerus
+    else
+      return :singular
+    end
   end
   
-  def x_to_i(x)
+  def x_to_i(humanizer, x)
     return nil if x.kind_of?(String) and x !~ /\d+/
-    return nil unless x.respond_to? :to_i
+    unless x.respond_to? :to_i
+      unless x.respond_to?(:size)
+        return nil
+      end
+      return x.size
+    end
     return x.to_i
   end
   

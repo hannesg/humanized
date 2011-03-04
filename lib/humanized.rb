@@ -25,7 +25,7 @@ def Humanized(obj)
 end
 
 module Humanized
-
+  
   module HasNaturalGenus
     
     def self.included(base)

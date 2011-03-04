@@ -21,6 +21,8 @@ module Humanized
     
     include Enumerable
     
+    UNMAGIC_METHODS = [:to_ary]
+    
 # @private
     NAME_REGEX = /[a-z_]+/.freeze
 # @private
@@ -51,6 +53,7 @@ module Humanized
 #  s.this{ is.awesome | is.awful } # gives: (this.is.awesome , this.is.awful)
 # 
     def method_missing(name, *args, &block)
+      return super if UNMAGIC_METHODS.include? name
       name_str = name.to_s
       if OPTIONAL_NAME_REGEX =~ name_str
         return ( self + $1.to_sym | self )._(*args,&block)
@@ -68,6 +71,7 @@ module Humanized
     
     def |(other)
       return other if @path.none?
+      return self.dup if other.none?
       sp = self.path
       sd = self.depth
       op = other.path
