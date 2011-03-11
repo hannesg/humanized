@@ -22,7 +22,30 @@ module JsonSource
   PARSER = Yajl::Parser.new(:symbolize_keys => true)
   
   def read_json(file)
-    PARSER.parse( File.open(file) )
+    
+    f = File.open(file)
+    
+    js = JsonSource.translate(Yajl::Parser.new(:symbolize_keys => true).parse( f ))
+    
+    f.close
+    
+    return js
+  end
+  
+protected
+  def self.translate( o )
+    if o.kind_of? Hash
+      r = {}
+      o.each{|k,v| r[k] = translate(v) }
+      return r
+    elsif o.kind_of? Array
+      return o.map{|a| translate(a)}
+    elsif o.kind_of? String
+      if( o[0] == ?$ )
+        return o[1..-1].to_sym
+      end
+    end
+    return o
   end
   
 end

@@ -37,7 +37,7 @@ class Wrapper < Delegator
   
   def self.wrap(*args, &block)
     a = args.flatten.map{|o|
-      Wrapper.new(args,block)
+      self.new(o,&block)
     }
     return a.size == 1 ? a[0] : a
   end
@@ -56,7 +56,11 @@ class Wrapper < Delegator
   end
   
   def to_s
-    return @object.instance_eval(&@block)
+    if @block.arity == 1
+      return @block.call(@object)
+    else
+      return @object.instance_eval(&@block)
+    end
   end
   
 end

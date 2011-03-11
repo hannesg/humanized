@@ -19,15 +19,15 @@ require "bundler/setup"
 
 Bundler.require(:default,:development)
 require "humanized.rb"
-require "more/humanized/yaml_source.rb"
+require "more/humanized/json_source.rb"
 
-describe Humanized::YamlSource do
+describe Humanized::JsonSource do
   
   it "should load a whole dir" do
     
     h = Humanized::Humanizer.new
-    h.source.extend(Humanized::YamlSource)
-    h.source.load(File.join(File.dirname(__FILE__),'data/de'), :grep=>'*.yml')
+    h.source.extend(Humanized::JsonSource)
+    h.source.load(File.join(File.dirname(__FILE__),'data/de'), :grep=>'*.json')
     
     h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
     
@@ -38,8 +38,8 @@ describe Humanized::YamlSource do
     #pending "redesign"
     
     h = Humanized::Humanizer.new
-    h.source.extend(Humanized::YamlSource)
-    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
+    h.source.extend(Humanized::JsonSource)
+    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.json'),:scope => :user._ )
     
     h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
     

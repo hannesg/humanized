@@ -20,7 +20,7 @@ require "yaml"
 
 Bundler.require(:default,:development)
 require "humanized.rb"
-require "humanized/extras/scope_parslet.rb"
+require "more/humanized/scope_parslet.rb"
 require "humanized/interpolation/date.rb"
 require "humanized/interpolation/number.rb"
 
@@ -254,5 +254,40 @@ YAML
     end
     
   end
+  
+  describe Humanized::Ref do
+    
+    it "should be dereferenced correctly" do
+      
+      s = Humanized::Source.new({
+        :x => Humanized::Ref[:y],
+        :y => Humanized::Ref[:z],
+        :z => { :a => 'b' }
+      })
+      
+      s.get([[:x]]).should == { :a => 'b' }
+      
+      s.get([[:x,:a]]).should == 'b'
+      
+    end
+    
+    it "should be dereferenced when set" do
+      
+      s = Humanized::Source.new({
+        :x => Humanized::Ref[:y],
+        :y => Humanized::Ref[:z],
+        :z => {
+          :a => 'b'
+        }
+      })
+      
+      s.store([:x,:a],'c')
+      
+      s.get([[:z,:a]]).should == 'c'
+      
+    end
+    
+  end
+  
   
 end

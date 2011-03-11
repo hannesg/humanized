@@ -1,0 +1,22 @@
+{
+  "genus": "$male",
+  "singular": {
+    "nominativ": "Benutzer",
+    "genitiv": "Benutzers"
+  },
+  "plural": {
+    "nominativ": "Benutzer",
+    "genitiv": "Benutzer"
+  },
+  "female": {
+    "genus": "$female",
+      "singular": {
+      "nominativ": "Benutzerin",
+      "genitiv": "Benutzerin"
+    },
+    "plural": {
+      "nominativ": "Benutzerinnen",
+      "genitiv": "Benutzerinnen"
+    }
+  }
+}

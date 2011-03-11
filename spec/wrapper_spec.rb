@@ -19,7 +19,7 @@ require "bundler/setup"
 
 Bundler.require(:default,:development)
 require "humanized.rb"
-require "humanized/extras/wrapper"
+require "humanized/wrapper"
 
 describe Humanized::Wrapper do
 

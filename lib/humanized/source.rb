@@ -19,8 +19,8 @@ module Humanized
 # A source lets you lookup,store and load data needed for humanization.
 class Source
   
-  def initialize()
-    @source = {}
+  def initialize(data = {})
+    @source = data
     @sync = Sync.new
     @loaded = Set.new
   end
@@ -123,7 +123,7 @@ protected
         end
         hshc = hshc[a]
         while hshc.kind_of? Humanized::Ref
-          hshc = store!(hshc, str,  @source)
+          hshc = find(hshc, @source)
         end
       end
       if str.kind_of? Hash

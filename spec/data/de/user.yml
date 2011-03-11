@@ -7,7 +7,7 @@
   :nominativ: "Benutzer"
   :genitiv: "Benutzer"
 :female:
-  :genus: :male
+  :genus: :female
   :singular:
     :nominativ: "Benutzerin"
     :genitiv: "Benutzerin"

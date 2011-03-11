@@ -18,11 +18,21 @@ require 'set'
 require 'abbrev'
 require 'facets/kernel/meta_class.rb'
 require "humanized/interpolation/conjunctions"
+require 'humanized/wrapper'
 module Humanized
   
 module KNG
   
-  include Conjunctions
+  class Wrapper < Humanized::Wrapper
+=begin
+    def initialize(object, humanizer, kasus, numerus, genus)
+      super(object) do
+        humanizer.get(self, kasus, numerus, genus)
+      end
+    end
+=end
+    
+  end
   
   def g(humanizer, genus, *args)
     if args.size == 3
@@ -37,7 +47,7 @@ module KNG
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return each(args) do |arg|
+      return Wrapper.wrap(args) do |arg|
         humanizer.get( arg , x_to_numerus(humanizer, numerus), meta_class.const_get(:KASUS).first.to_sym)
       end
     end
@@ -48,7 +58,7 @@ module KNG
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return each(args) do |arg| 
+      return Wrapper.wrap(args) do |arg|
              humanizer.get( arg, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
       end
     end
@@ -59,7 +69,7 @@ module KNG
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return each(args) do |arg|
+      return Wrapper.wrap(args) do |arg|
         k = arg._
         k = k._(x_to_genus(humanizer, genus)) | k
         humanizer.get( k, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
@@ -115,7 +125,7 @@ protected
       # IDEA 1: plug in something like Array.of(...)
       s = Set.new
       x.each do |o|
-        s = merge_genus( x_to_genus(humanizer, o) )
+        s = merge_genus( s, x_to_genus(humanizer, o) )
         if s.size == 3
           break
         end
