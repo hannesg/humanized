@@ -14,8 +14,6 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require 'abbrev'
-require 'facets/kernel/meta_class.rb'
 module Humanized
   
 module Conjunctions
@@ -30,17 +28,6 @@ module Conjunctions
     args = args.flatten
     last = args.pop
     return [args.join(', '), last].join(' '+humanizer[:or]+' ')
-  end
-  
-protected
-  
-  def each(*args, &block)
-    v = args.flatten.map &block
-    if v.size == 1
-      return v[0]
-    else
-      return v
-    end
   end
   
 end

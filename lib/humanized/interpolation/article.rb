@@ -14,16 +14,25 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-
 module Humanized
   
-  # A Reference can be used to redirect lookups for certain paths.
-  class Ref < Array
-    
-    def inspect
-      '!ref'+super
+module Article
+  
+  include KNG
+  
+  ArticleScope = [:meta, :articles]._
+  
+  def a(humanizer, target, *args)
+    Wrapper.wrap(target) do |t|
+      humanizer[ArticleScope.unspecific.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
     end
-    
   end
   
+  def the(humanizer, target, *args)
+    Wrapper.wrap(target) do |t|
+      humanizer[ArticleScope.specific.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
+    end
+  end
+  
+end
 end

@@ -21,13 +21,14 @@ require "yaml"
 Bundler.require(:default,:development)
 require "humanized.rb"
 require "humanized/interpolation/german.rb"
+require "humanized/interpolation/article.rb"
 
 describe Humanized::German do
-  
+
   describe "n" do
-    
+
     it "should work" do
-      
+
       h = Humanized::Humanizer.new
       h[:one] = {
         :singular => {
@@ -37,23 +38,23 @@ describe Humanized::German do
           :nominativ => 'other'
         }
       }
-      
+
       h.interpolater.extend(Humanized::German)
-      
+
       h.interpolate('[n|%i|one|other]',:i => 1).should == 'one'
       h.interpolate('[n|%i|one|other]',:i => 2).should == 'other'
-      
+
       h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
       h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
-      
+
     end
-    
+
   end
-  
+
   describe "kn" do
-    
+
     it "should work" do
-      
+
       h = Humanized::Humanizer.new
       h[:one] = {
         :singular => {
@@ -65,23 +66,23 @@ describe Humanized::German do
           :genitiv => 'others'
         }
       }
-      
+
       h.interpolater.extend(Humanized::German)
-      
+
       h.interpolate('[kn|nominativ|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
       h.interpolate('[kn|nominativ|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
-      
+
       h.interpolate('[kn|genitiv|%i|%thing]',:i => 1,:thing=>:one).should == 'ones'
       h.interpolate('[kn|genitiv|%i|%thing]',:i => 2,:thing=>:one).should == 'others'
-      
+
     end
-    
+
   end
-  
+
   describe "kng" do
-    
+
     it "should work" do
-      
+
       h = Humanized::Humanizer.new
       h[:user] = {
         :genus => :male,
@@ -95,27 +96,119 @@ describe Humanized::German do
           }
         }
       }
-      
+
       class User < Struct.new(:genus)
-        
+
         include Humanized::HasNaturalGenus
-        
+
       end
-      
+
       h.interpolater.extend(Humanized::German)
-      
+
       h.interpolate('[kng|nominativ|1|m|%thing]',:thing=>:user).should == 'Benutzer'
       h.interpolate('[kng|nominativ|1|f|%thing]',:thing=>:user).should == 'Benutzerin'
-      
+
       #TODO: this doesn't really fit here:'
       h.interpolate('[kn|nominativ|1|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
       h.interpolate('[kn|nominativ|1|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
-      
+
       h.interpolate('[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:male)).should == 'Benutzer'
       h.interpolate('[kng|nominativ|1|%thing|%thing]',:thing=>User.new(:female)).should == 'Benutzerin'
-      
+
     end
-    
+
   end
-  
+
+  describe "articles" do
+
+    it "should work" do
+
+      h = Humanized::Humanizer.new
+      h[:meta] = {
+        :articles => {
+          :specific => {
+            :male => {
+              :singular => {
+                :nominativ => 'der',
+                :genitiv => 'des',
+                :dativ => 'dem',
+                :akkusativ => 'den'
+              },
+              :plural => {
+                :nominativ => 'die',
+                :genitiv => 'der',
+                :dativ => 'den',
+                :akkusativ => 'die'
+              }
+            },
+            :female => {
+              :singular => {
+                :nominativ => 'die',
+                :genitiv => 'der',
+                :dativ => 'der',
+                :akkusativ => 'die'
+              },
+              :plural => {
+                :nominativ => 'die',
+                :genitiv => 'der',
+                :dativ => 'den',
+                :akkusativ => 'die'
+              }
+            },
+            :neutral => {
+              :singular => {
+                :nominativ => 'das',
+                :genitiv => 'des',
+                :dativ => 'dem',
+                :akkusativ => 'das'
+              },
+              :plural => {
+                :nominativ => 'die',
+                :genitiv => 'der',
+                :dativ => 'den',
+                :akkusativ => 'die'
+              }
+            }
+
+          }
+        }
+      }
+      h[:and] = 'und'
+      
+      h[:user] = {
+        :genus => :male,
+        :singular => {
+          :nominativ => 'Benutzer',
+          :genitiv => 'Benutzers'
+        },
+        :plural => {
+          :nominativ => 'Benutzer',
+          :genitiv => 'Benutzer'
+        },
+        :female => {
+          :genus => :female,
+          :singular => {
+            :nominativ => 'Benutzerin'
+          }
+        }
+      }
+
+      h.interpolater.extend(Humanized::German)
+      h.interpolater.extend(Humanized::Article)
+      h.interpolater.extend(Humanized::Conjunctions)
+
+      h.interpolate('[the|[kn|nominativ|1|%thing]]',:thing=>:user).should == 'der Benutzer'
+      
+      h.interpolate('[the|[kn|nominativ|2|%thing]]',:thing=>:user).should == 'die Benutzer'
+      
+      h.interpolate('[the|[kn|genitiv|1|%thing]]',:thing=>:user).should == 'des Benutzers'
+      
+      h.interpolate('[and|[the|[kn|nominativ|1|%users]]]',:users=>[User.new(:male), User.new(:female)]).should == 'der Benutzer und die Benutzerin'
+
+
+
+    end
+
+  end
+
 end

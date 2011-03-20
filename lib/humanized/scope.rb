@@ -14,6 +14,7 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+
 module Humanized
 # A Scope is basically an array of paths which could be looked up in a Source.
 # To make the Scope handling a lot easier, there are a lot of handy methods.

@@ -78,7 +78,7 @@ class Source
 #  end
 #
 # @param [String] package name
-# @yields
+# @yield self
 # @yieldparam [Source] self
   def package(name)
     return nil if @loaded.include? name

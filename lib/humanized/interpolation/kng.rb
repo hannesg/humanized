@@ -23,14 +23,32 @@ module Humanized
   
 module KNG
   
-  class Wrapper < Humanized::Wrapper
-=begin
-    def initialize(object, humanizer, kasus, numerus, genus)
-      super(object) do
-        humanizer.get(self, kasus, numerus, genus)
+  class KNGWrapper < Humanized::Wrapper
+
+    attr_reader :kng_kasus, :kng_numerus, :kng_genus
+
+    def initialize(object, humanizer, kasus, numerus, genus=nil)
+      @kng_kasus = kasus
+      @kng_numerus = numerus
+      @kng_genus = genus
+      @kng_humanizer = humanizer
+      self.__setobj__(object)
+    end
+    
+    def self.wrap(args, *rest)
+      a = args.flatten.map{|o|
+        self.new(o,*rest)
+      }
+      return a.size == 1 ? a[0] : a
+    end
+    
+    def to_s
+      if @kng_genus
+        return @kng_humanizer[__getobj__._.optionally(@kng_genus)._(@kng_numerus, @kng_kasus)]
+      else
+        return @kng_humanizer[__getobj__._(@kng_numerus, @kng_kasus)]
       end
     end
-=end
     
   end
   
@@ -38,7 +56,11 @@ module KNG
     if args.size == 3
       # male, female, neutral
       genus = x_to_genus(humanizer, genus)
-      return [:male,:female,:neutral].zip(args).assoc(genus)[1]
+      a = [:male,:female,:neutral].zip(args)
+      if genus.kind_of? Set
+        return genus.map{|g| a.assoc(g)[1] }
+      end
+      return a.assoc(genus)[1]
     end
   end
   
@@ -47,9 +69,7 @@ module KNG
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return Wrapper.wrap(args) do |arg|
-        humanizer.get( arg , x_to_numerus(humanizer, numerus), meta_class.const_get(:KASUS).first.to_sym)
-      end
+      return KNGWrapper.wrap(args, humanizer, meta_class.const_get(:KASUS).first.to_sym, x_to_numerus(humanizer, numerus))
     end
   end
   
@@ -58,22 +78,17 @@ module KNG
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return Wrapper.wrap(args) do |arg|
-             humanizer.get( arg, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
-      end
+      return KNGWrapper.wrap(args, humanizer, x_to_kasus(humanizer, kasus), x_to_numerus(humanizer, numerus))
     end
   end
+  
   
   def kng(humanizer, kasus, numerus, genus,*args)
     if args.size == 2
       # singular, plural
       return args[ x_to_numerus(humanizer, numerus) == :singular ? 0 : 1 ]
     elsif args.size == 1
-      return Wrapper.wrap(args) do |arg|
-        k = arg._
-        k = k._(x_to_genus(humanizer, genus)) | k
-        humanizer.get( k, x_to_numerus(humanizer, numerus), x_to_kasus(humanizer, kasus) )
-      end
+      return KNGWrapper.wrap(args, humanizer, x_to_kasus(humanizer, kasus), x_to_numerus(humanizer, numerus), x_to_genus(humanizer, genus))
     end
   end
   
@@ -117,6 +132,9 @@ protected
   end
   
   def x_to_genus(humanizer, x)
+    if x.instance_of? KNGWrapper
+      return x.kng_genus if x.kng_genus
+    end
     if x.kind_of? HasNaturalGenus
       return x.genus
     end
@@ -144,6 +162,9 @@ protected
   end
 
   def x_to_kasus(humanizer, x)
+    if x.instance_of? KNGWrapper
+      return x.kng_kasus
+    end
     i = x.to_i
     c = meta_class.const_get :KASUS
     if i > 0 and i <= c.size
@@ -153,11 +174,14 @@ protected
   end
 
   def x_to_numerus(humanizer, x)
+    if x.instance_of? KNGWrapper
+      return x.kng_numerus
+    end
     # seriously: this sucks!
-    if x.kind_of? String
+    i = x_to_i(humanizer, x)
+    if i.nil? and x.kind_of? String
       return abbrev_numerus[x]
     end
-    i = x_to_i(humanizer, x)
     if i
       if i == 1
         return :singular

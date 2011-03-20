@@ -14,6 +14,7 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+
 require "facets/module/home.rb"
 require "facets/module/basename.rb"
 require "facets/module/anonymous.rb"
@@ -24,6 +25,9 @@ def Humanized(obj)
   return obj.humanization_key
 end
 
+
+# Humanized is library which really helps you create human 
+# readable output.
 module Humanized
   
   module HasNaturalGenus

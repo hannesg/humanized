@@ -14,6 +14,7 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+
 module Humanized
 class Compiler
   
@@ -39,7 +40,7 @@ class Compiler
 
 # Compiles a String into a Proc
 # @param [String] str A formated String
-# @return A Proc, which will handle interpolation.
+# @return [Compiled] A Proc, which will handle interpolation.
 #
   def compile(str)
     @compiled[str]
