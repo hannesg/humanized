@@ -92,6 +92,10 @@ module KNG
     end
   end
   
+  def kongruent(humanizer, from, *args)
+    return KNGWrapper.wrap(args, humanizer, x_to_kasus(humanizer, from), x_to_numerus(humanizer, from), x_to_genus(humanizer, from))
+  end
+  
 protected
 
   def abbrev_kasus
@@ -132,7 +136,7 @@ protected
   end
   
   def x_to_genus(humanizer, x)
-    if x.instance_of? KNGWrapper
+    if x.respond_to? :kng_genus
       return x.kng_genus if x.kng_genus
     end
     if x.kind_of? HasNaturalGenus
@@ -162,7 +166,7 @@ protected
   end
 
   def x_to_kasus(humanizer, x)
-    if x.instance_of? KNGWrapper
+    if x.respond_to? :kng_kasus
       return x.kng_kasus
     end
     i = x.to_i
@@ -174,7 +178,7 @@ protected
   end
 
   def x_to_numerus(humanizer, x)
-    if x.instance_of? KNGWrapper
+    if x.respond_to? :kng_numerus
       return x.kng_numerus
     end
     # seriously: this sucks!

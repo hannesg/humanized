@@ -14,14 +14,10 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
-require "yaml"
+require "helper.rb"
 
-Bundler.require(:default,:development)
 require "humanized.rb"
 require "humanized/interpolation/german.rb"
-require "humanized/interpolation/article.rb"
 
 describe Humanized::German do
 
@@ -124,9 +120,9 @@ describe Humanized::German do
     it "should work" do
 
       h = Humanized::Humanizer.new
-      h[:meta] = {
+      h[Humanized::Scope::Meta] = {
         :articles => {
-          :specific => {
+          :definite => {
             :male => {
               :singular => {
                 :nominativ => 'der',
@@ -169,7 +165,6 @@ describe Humanized::German do
                 :akkusativ => 'die'
               }
             }
-
           }
         }
       }
@@ -194,7 +189,6 @@ describe Humanized::German do
       }
 
       h.interpolater.extend(Humanized::German)
-      h.interpolater.extend(Humanized::Article)
       h.interpolater.extend(Humanized::Conjunctions)
 
       h.interpolate('[the|[kn|nominativ|1|%thing]]',:thing=>:user).should == 'der Benutzer'

@@ -14,25 +14,20 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-module Humanized
+require "rubygems"
+require "bundler/setup"
+require "yaml"
+
+Bundler.require(:default,:development)
+
+require 'simplecov'
+SimpleCov.start do
+  add_filter "/spec/"
   
-module Article
+  add_group "Core", "/lib/humanized(?!/interpolation)"
   
-  include KNG
+  add_group "Core Interpolation", "/lib/humanized/interpolation"
   
-  ArticleScope = [:meta, :articles]._
+  add_group "More", "/lib/more/humanized/"
   
-  def a(humanizer, target, *args)
-    Wrapper.wrap(target) do |t|
-      humanizer[ArticleScope.unspecific.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
-    end
-  end
-  
-  def the(humanizer, target, *args)
-    Wrapper.wrap(target) do |t|
-      humanizer[ArticleScope.specific.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
-    end
-  end
-  
-end
 end

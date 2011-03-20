@@ -19,14 +19,20 @@ module Humanized
   
 class Wrapper < Delegator
   
-  UNWRAPPED = [:__send__ , :__id__  ,:method_missing , :respond_to? , :class, :instance_of?, :instance_eval].freeze
+  UNWRAPPED = [:object_id, :__send__ , :__id__  ,:method_missing , :respond_to?, :respond_to_missing? , :class, :instance_of?, :instance_eval, :instance_exec].freeze
   
+unless RUBY_VERSION >= '1.9.0'
   Object.new.methods.each do |meth|
     unless UNWRAPPED.include? meth.to_sym
-      undef_method meth
+      begin
+        undef_method meth
+      rescue NameError => e
+        warn e.to_s
+      end
     end
   end
-  
+end
+
   def __getobj__
     @object
   end
@@ -59,7 +65,7 @@ class Wrapper < Delegator
     if @block.arity == 1
       return @block.call(@object)
     else
-      return @object.instance_eval(&@block)
+      return @object.instance_exec(&@block)
     end
   end
   

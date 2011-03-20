@@ -18,7 +18,50 @@ require 'humanized/interpolation/kng.rb'
 module Humanized
 module English
   
+  module Articles
+    
+    def a(humanizer, *args)
+      Wrapper.wrap(args) do |t|
+        fs = first_sound(humanizer, t)
+        s = t.to_s
+        if( fs.nil? )
+          fs = guess_first_sound(s)
+        end
+        (fs == :vowel ? 'an' : 'a' ) + ' ' + s
+      end
+    end
+    
+    def the(humanizer, *args)
+      Wrapper.wrap(args) do |t|
+        'the ' + t.to_s
+      end
+    end
+    
+    def no(humanizer, *args)
+      Wrapper.wrap(args) do |t|
+        'no ' + t.to_s
+      end
+    end
+    
+    def some(humanizer, *args)
+      Wrapper.wrap(args) do |t|
+        'some ' + t.to_s
+      end
+    end
+    
+  protected
+    def first_sound(humanizer, x)
+      return humanizer.get( x._(:first_sound) )
+    end
+    
+    def guess_first_sound(s)
+      return :consonant
+    end
+    
+  end
+  
   include KNG
+  include Articles
   
   KASUS = [
     'nominativ'.freeze,

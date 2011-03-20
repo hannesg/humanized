@@ -14,16 +14,23 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
+require "helper.rb"
 
-Bundler.require(:default,:development)
+yajl = false
+begin
+  require "yajl"
+  yajl = !!Yajl
+rescue LoadError
+end
+
 require "humanized.rb"
 require "more/humanized/json_source.rb"
 
 describe Humanized::JsonSource do
   
   it "should load a whole dir" do
+    
+    pending "no yajl found" unless yajl
     
     h = Humanized::Humanizer.new
     h.source.extend(Humanized::JsonSource)
@@ -35,7 +42,7 @@ describe Humanized::JsonSource do
   
   it "should load single file" do
     
-    #pending "redesign"
+    pending "no yajl found" unless yajl
     
     h = Humanized::Humanizer.new
     h.source.extend(Humanized::JsonSource)

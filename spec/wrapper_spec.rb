@@ -14,10 +14,8 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
+require "helper.rb"
 
-Bundler.require(:default,:development)
 require "humanized.rb"
 require "humanized/wrapper"
 
@@ -68,6 +66,20 @@ describe Humanized::Wrapper do
     w = Humanized::Wrapper.new(u, '<a href="user?id=#{id}">#{to_s}</a>')
     
     w.to_s.should == '<a href="user?id=1234">Max</a>'
+    
+    w._.should == u._
+    
+  end
+
+  it "should work with Strings" do
+    
+    u = User.new
+    u.id = 1234
+    u.name = 'Max'
+    
+    w = Humanized::Wrapper.new(u, ['<span style="color: red">','</span>'])
+    
+    w.to_s.should == '<span style="color: red">Max</span>'
     
     w._.should == u._
     

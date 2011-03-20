@@ -14,10 +14,8 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
+require "helper.rb"
 
-Bundler.require(:default,:development)
 require "humanized.rb"
 require "more/humanized/yaml_source.rb"
 

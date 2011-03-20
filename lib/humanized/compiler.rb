@@ -72,7 +72,11 @@ protected
     rest = str
     while( rest.size > 0 )
       token, rest = read_one(rest)
-      result << token
+      if token.kind_of? String and result.last.kind_of? String
+        result.last << token
+      else
+        result << token
+      end
     end
     return result
   end
@@ -89,15 +93,15 @@ protected
       while rest[0] != ?]
         arg = []
         rest = rest[1..-1]
+        if rest.size == 0
+          return str, ''
+        end
         while rest[0] != ?| and rest[0] != ?]
           token, rest = read_one(rest)
           if rest.size == 0
             return str, ''
           end
           arg << token
-        end
-        if rest.size == 0
-          return str, ''
         end
         if arg.size == 0
           args << ''
@@ -111,7 +115,7 @@ protected
       return {:method=>method,:args=>args},rest[1..-1]
     elsif match = END_REGEXP.match(str)
       if match.pre_match.size == 0
-        return str[0..1], str[1..-1]
+        return str[0...1], str[1..-1]
       end
       return match.pre_match, match[0] + match.post_match
     end

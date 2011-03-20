@@ -1,2 +1,7 @@
 .project
 .yardoc
+**/*.rbc
+coverage
+doc
+Gemfile.lock
+Rakefile.compiled.rbc

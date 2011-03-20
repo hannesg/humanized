@@ -14,11 +14,8 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require "rubygems"
-require "bundler/setup"
-require "yaml"
+require "helper.rb"
 
-Bundler.require(:default,:development)
 require "humanized.rb"
 require "more/humanized/scope_parslet.rb"
 require "humanized/interpolation/date.rb"

@@ -177,6 +177,7 @@ module Humanized
     
     Root = self.new([[]],1)
     None = self.new([],0)
+    Meta = self.new([[:__meta__]],1)
     
     
   end

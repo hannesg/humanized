@@ -12,7 +12,7 @@ group :testing do
   
   gem 'parslet'
   
-  gem "rcov"
-  gem "yajl-ruby", :require => 'yajl'
+  gem "simplecov", :require => false
+  gem "yajl-ruby", :require => 'yajl', :platform => :ruby
   
 end

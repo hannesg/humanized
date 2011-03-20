@@ -14,12 +14,9 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require 'yajl'
 module Humanized
   
 module JsonSource
-  
-  PARSER = Yajl::Parser.new(:symbolize_keys => true)
   
   def read_json(file)
     
