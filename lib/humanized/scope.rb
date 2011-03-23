@@ -16,14 +16,74 @@
 #
 
 module Humanized
-# A Scope is basically an array of paths which could be looked up in a Source.
-# To make the Scope handling a lot easier, there are a lot of handy methods.
+# A {Scope} is _the_ way to tell a {Humanizer} what you want from it.
+# It contains of three parts:
+# * {#path a list of paths}, which will be looked up in a {Source source}
+# * {#default a default}, which will be used if nothing was found
+# * {#variables variables}, which will be used to interpolate a found string
+# That's all you need!
+# The good thing: you'll unlikly create a scope by hand, that's done automatically with "_"!
+#
+# == Examples
+#
+# The basic steps:
+#  # Creates a scope which looks up ":a" with no default and no variables:
+#  :a._
+#  # Creates a scope which looks up nothing, has a default of "String" but no variables:
+#  "String"._
+#  # Creates a scope which looks up nothing, has no default but the variable :foo = "bar"
+#  {:foo => 'bar'}._
+#
+# Combining these steps brings the power:
+#
+#  # Creates a scope which looks up ":a", has a default of "String" and the variable :foo = "bar"
+#  :a._ + "String"._ + {:foo => 'bar'}._
+#  # Shorthand for this:
+#  :a._("String", :foo => 'bar')
+#
+# The "_"-method is overloaded for many things. For example for inheritance:
+#  
+#  module Site
+#    class User
+#    end
+#    class Admin < User
+#    end
+#  end
+#  # Creates a scope matching ":site, :admin" or ":site, :user":
+#  Site::Admin._
+#  # This creates the same:
+#  Site::Admin.new._
+#
+# And for Arrays:
+#  # This matches ":a, :b, :c":
+#  [:a, :b, :c]._
+#
+# Finally for Scopes itself:
+#  # Given scope is a Scope this is always true:
+#  scope._._ == scope._
+#
+# I could continue the whole day ...
+#
+# == Tricks
+# A Scope responds to any method giving a new Scope suffixed by the method name
+#  # Looks up ":a, :b, :c"
+#  :a._.b.c
+# "_" can also take a block which is instance evaled on the scope:
+#  # Looks up ":a, :b, :c"
+#  :a._{ b.c }
+#  # Looks up ":a, :x" or ":a, :y"
+#  :a._{ x | y }
+# There are two special scopes:
+#  # Looks up "", which will we be the whole source
+#  Humanized::Scope::Root
+#  # Looks up nothing
+#  Humanized::Scope::None
+#
   class Scope
     
     include Enumerable
-    
+# @private
     UNMAGIC_METHODS = [:to_ary]
-    
 # @private
     NAME_REGEX = /[a-z_]+/.freeze
 # @private
@@ -70,6 +130,13 @@ module Humanized
       return @path == other.path
     end
     
+# Creates a {Scope scope} which matches either self or the other scope.
+# @example
+#  # this will match ":to_be" and ":not_to_be":
+#  ( :to_be._ | :not_to_be._ )
+#
+# @param [Scope] other another scope
+# @return [Scope] a new scope
     def |(other)
       return other if @path.none?
       return self.dup if other.none?
@@ -86,15 +153,19 @@ module Humanized
         i = i + sd
         j = j + od
       end
-      return Scope.new( result, sd + od , other.variables, other.default)
-    end
-  
-    def include?(path)
-      return @path.include? path
+      return Scope.new( result, sd + od , self.variables.merge(other.variables), other.default)
     end
     
-    def optionally(k)
-      return self._(k) | self
+# Creates a new scope which will optionally match this scope suffixed with the key.
+#
+# @example
+#  # this will match ":borat_is_stupid, :not" and ":borat_is_stupid":
+#  :borat_is_stupid._.optionally(:not)
+#
+# @param key 
+# @return [Scope] a new scope
+    def optionally(key)
+      return self._(key) | self
     end
     
     def [](*args)
@@ -111,11 +182,18 @@ module Humanized
       return Scope.new( result, args.size )
     end
     
+# Chain scopes together
+# @example
+#  # this will match ":a,:b,:c"
+#  :a._ + :b._ + :c._
+#
+# @param *args an array of scopes for chaining
+# @return [Scope]
     def +(*args)
       return self if args.none?
       if( args.first.kind_of? Scope )
         s = args.first
-        return Scope.new(@path, @depth, variables.merge(s.variables), s.default ) if @path.none? or s.path.none?
+        return Scope.new(@path, @depth, variables.merge(s.variables), self.default || s.default ) if @path.none? or s.path.none?
         # TODO: maybe modify depth too?
         new_path = []
         @path.each do |x|
@@ -123,7 +201,7 @@ module Humanized
             new_path << x + path
           end
         end
-        return Scope.new(new_path, s.depth, variables.merge(s.variables), s.default )
+        return Scope.new(new_path, s.depth, variables.merge(s.variables), self.default || s.default )
       end
       if @path.none?
         return self
@@ -139,7 +217,7 @@ module Humanized
         arg = args.shift
         if arg.kind_of? Symbol or arg.kind_of? Scope
           thiz += arg
-        elsif arg.kind_of? Hash
+        elsif arg.class == Hash
           vars = arg
         else
           thiz += arg._
@@ -166,7 +244,9 @@ module Humanized
     def inspect
       return '(' + @path.map{|p| p.join '.'}.join(' , ') + ' '+depth.to_s+' v='+variables.inspect+' d='+default.inspect+')'
     end
-  
+
+# Iterates over all possible paths.
+# @yieldparam [Array] path
     def each(&block)
       @path.each(&block)
     end

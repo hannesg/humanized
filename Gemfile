@@ -10,9 +10,7 @@ gem 'rspec'
 
 group :testing do
   
-  gem 'parslet'
-  
-  gem "simplecov", :require => false
-  gem "yajl-ruby", :require => 'yajl', :platform => :ruby
+  gem 'simplecov', :require => false
+  gem 'yajl-ruby', :require => 'yajl', :platform => :ruby
   
 end

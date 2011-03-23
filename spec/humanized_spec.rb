@@ -17,7 +17,6 @@
 require "helper.rb"
 
 require "humanized.rb"
-require "more/humanized/scope_parslet.rb"
 require "humanized/interpolation/date.rb"
 require "humanized/interpolation/number.rb"
 
@@ -39,8 +38,8 @@ describe Humanized do
   
   it "should create scopes correctly" do
     
-    Humanized(Testing::User).should == Humanized::Scope.new([[:testing,:user]])
-    Humanized(Testing::Admin).should == Humanized::Scope.new([[:testing,:admin],[:testing,:user]])
+    Testing::User._.should == Humanized::Scope.new([[:testing,:user]])
+    Testing::Admin._.should == Humanized::Scope.new([[:testing,:admin],[:testing,:user]])
     
     [Testing::User, :x]._.should == Humanized::Scope.new([[:testing,:user,:x]])
     

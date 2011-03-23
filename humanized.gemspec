@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
   s.name = %q{humanized}
-  s.version = "0.0.1.alpha"
-  s.date = %q{2010-09-01}
+  s.version = "0.0.1.beta"
+  s.date = %q{2011-03-23}
   s.authors = ["HannesG"]
   s.email = %q{hannes.georg@googlemail.com}
-  s.summary = %q{Humanizes}
+  s.summary = %q{advanced i18n for ruby}
   s.homepage = %q{http://github.com/hannesg/humanized}
   s.description = %q{Humanizes it!}
   
@@ -14,8 +14,8 @@ Gem::Specification.new do |s|
   
   s.add_dependency "facets"
   
-  s.add_development_dependency "parslet"
   s.add_development_dependency 'rspec'
+  s.add_development_dependency 'simplecov'
   s.add_development_dependency 'rake'
   
 end

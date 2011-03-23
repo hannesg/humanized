@@ -20,12 +20,6 @@ require "facets/module/basename.rb"
 require "facets/module/anonymous.rb"
 require "facets/module/alias_method_chain.rb"
 
-require "humanized/scope"
-def Humanized(obj)
-  return obj.humanization_key
-end
-
-
 # Humanized is library which really helps you create human 
 # readable output.
 module Humanized
@@ -47,86 +41,12 @@ module Humanized
       return humanization_key_without_genus.optionally(self.genus)
     end
     
-    
   end
   
-  def humanization_key!
-    if self.anonymous?
-      return self.superclass.humanization_key
-    end
-    h = self.home
-    if h != Object and h.respond_to? :humanization_key
-      result = h.humanization_key + self.basename.downcase.to_sym
-    else
-      result = Scope::Root.+(*self.name.split('::').map{|s| s.downcase.to_sym })
-    end
-    thiz = self
-    if defined? thiz.superclass and self.superclass != Object
-      return result | self.superclass.humanization_key
-    end
-    return result
-  end
-
-  def humanization_key
-    @humanization_key ||= humanization_key!
-  end
-
-  def _(*args,&block)
-    humanization_key._(*args,&block)
-  end
-
 end
-require "humanized/ref.rb"
-require "humanized/humanizer.rb"
-
-class Module
-  include Humanized
-end
-class Object
-  def humanization_key
-    self.class.humanization_key
-  end
-  def _(*args,&block)
-    self.humanization_key._(*args,&block)
-  end
-end
-class Symbol
-  def _(*args,&block)
-    Humanized::Scope.new([[self]])._(*args,&block)
-  end
-end
-class Array
-  def _(*args,&block)
-    if self.any?
-      return self[0]._(*self[1..-1])._(*args,&block)
-    else
-      Humanized::Scope::None
-    end
-  end
-end
-
-class String
-  def _(*args,&block)
-    Humanized::Scope::None._(*args,&block).with_default(self)
-  end
-end
-class NilClass
-  def _(*args,&block)
-    Humanized::Scope::None._(*args,&block)
-  end
-end
-class Numeric
-  def _(*args,&block)
-    self.humanization_key.with_variables(:number=>self, :format =>:default).with_default('[number|%number|%format]')._(*args,&block)
-  end
-end
-class Time
-  def _(*args,&block)
-    self.humanization_key.with_variables(:time=>self, :format =>:default).with_default('[date|%time|%format]')._(*args,&block)
-  end
-end
-class Date
-  def _(*args,&block)
-    self.humanization_key.with_variables(:time=>self, :format =>:default).with_default('[date|%time|%format]')._(*args,&block)
-  end
+require "humanized/ref"
+require "humanized/humanizer"
+require "humanized/scope"
+Dir[File.expand_path('humanized/core_ext/*.rb', File.dirname(__FILE__))].each do |file|
+  require file
 end

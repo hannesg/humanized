@@ -21,14 +21,14 @@ require 'set'
 require 'humanized/compiler.rb'
 require 'humanized/source.rb'
 module Humanized
-# A Humanizer has one simple task: create strings!
+# A Humanizer has one simple task: <b>create strings in its language/dialect/locale/whatever!</b>
 #
-# To accomplish this it needs to do three independend steps:
-# * find out which string to use ( this is done by the source )
-# * parse the markup in that string ( this is done by the compiler )
-# * interpolate it using the given variables ( this is done by the interpolater )
-# The basic idea is that you create one Humanizer for every language/dialect/locale/whatever. However these can share any of these three components.
-# For example, if you want to use the same markup in every string, you only need to create one compiler and can use that in every humanizer you have.
+# There should be one Humanizer per each configuration, but they can share their three components:
+# * {#source a source} which holds all language data ( mainly strings )
+# * {#compiler a compiler} which compiles the found strings
+# * {#interpolater an interpolater} which holds the methods which can be used in an interpolation
+#
+# The most important method you may use is {#[]}.
 class Humanizer
   
   # This is a simple object without public methods. You can use this as a collection for interpolation methods.
@@ -61,12 +61,14 @@ class Humanizer
   end
   
 # Creates a String from the input. This will be the most used method in application code.
-# 
+# It expects a {Scope} as argument. Anything that is not a {Scope} will be converted into a {Scope} using the "_"-method.
+# This enables you to pass any object to this method. The result is mainly determined by result of the "_"-method.
+# For 
+#
+# @param [Scope, #_, Object] *args
 # @return [String]
-  def [](base,*rest)
-    #TODO: maybe all the special cases could be realized as
-    # a simple Hash[ Class => String ] ?
-    it = base._(*rest)
+  def [](*args)
+    it = args._
     
     vars = it.variables
     default = it.default
