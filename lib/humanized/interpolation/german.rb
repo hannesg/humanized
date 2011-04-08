@@ -20,29 +20,29 @@ module German
   
   module Articles
     
-    ArticleScope = Scope::Meta.articles
+    ArticleQuery = Query::Meta.articles
     
     def a(humanizer, *args)
       Wrapper.wrap(args) do |t|
-        humanizer[ArticleScope.indefinite.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
+        humanizer[ArticleQuery.indefinite.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
       end
     end
     
     def the(humanizer, *args)
       Wrapper.wrap(args) do |t|
-        humanizer[ArticleScope.definite.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
+        humanizer[ArticleQuery.definite.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
       end
     end
     
     def some(humanizer, *args)
       Wrapper.wrap(args) do |t|
-        humanizer[ArticleScope.partitive.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
+        humanizer[ArticleQuery.partitive.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
       end
     end
     
     def none(humanizer, *args)
       Wrapper.wrap(args) do |t|
-        humanizer[ArticleScope.negative.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
+        humanizer[ArticleQuery.negative.optionally(x_to_genus(humanizer, t))._(x_to_numerus(humanizer, t), x_to_kasus(humanizer, t))] + ' ' + t.to_s
       end
     end
     

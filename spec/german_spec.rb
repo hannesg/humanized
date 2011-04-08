@@ -120,7 +120,7 @@ describe Humanized::German do
     it "should work" do
 
       h = Humanized::Humanizer.new
-      h[Humanized::Scope::Meta] = {
+      h[Humanized::Query::Meta] = {
         :articles => {
           :definite => {
             :male => {

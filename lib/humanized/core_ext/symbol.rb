@@ -16,6 +16,6 @@
 #
 class Symbol
   def _(*args,&block)
-    Humanized::Scope.new([[self]])._(*args,&block)
+    Humanized::Query.new([[self]])._(*args,&block)
   end
 end

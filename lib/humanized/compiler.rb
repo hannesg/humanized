@@ -16,27 +16,29 @@
 #
 
 module Humanized
-class Compiler
+
+class Compiled < Proc
   
-  class Compiled < Proc
-  
-    attr_accessor :str
-  
-    def initialize(str)
-      @str = str
-      super()
-      return self
-    end
-  
-    def to_s
-      @str
-    end
-    
+  attr_accessor :str
+
+  def initialize(str)
+    @str = str
+    super()
+    return self
   end
 
+  def to_s
+    @str
+  end
+  
+end
+
+class CompilerBase
+  
   def initialize
     @compiled = Hash.new{|hsh,x| hsh[x] = compile!(x)}
   end
+
 
 # Compiles a String into a Proc
 # @param [String] str A formated String
@@ -45,6 +47,16 @@ class Compiler
   def compile(str)
     @compiled[str]
   end
+
+protected
+  def compile!(str)
+    raise NoMethodError, "Please implement a compile!-method."
+  end
+  
+end
+  
+class Compiler < CompilerBase
+  
 protected
   
   VAR_REGEXP = /^%([a-z_]+)/
@@ -59,12 +71,17 @@ protected
     elsif token.kind_of? Symbol
       "variables[#{token.inspect}]"
     elsif token.kind_of? Hash
-      "interpolater.#{token[:method]}(humanizer,#{token[:args].map(&TRANSFORMER).join(',')})"
+      if token[:args].any?
+        "interpolater.#{token[:method]}(humanizer,#{token[:args].map(&TRANSFORMER).join(',')})"
+      else
+        "interpolater.#{token[:method]}(humanizer)"
+      end
     end
   }
   
   def compile!(str)
-    return eval('Compiled.new(str){|humanizer,interpolater,variables| ' + TRANSFORMER.call(read(str)) +' }')  
+    str = str.dup.freeze
+    return eval('Compiled.new(str) do |humanizer,interpolater,variables| ' + TRANSFORMER.call(read(str)) +' end')
   end
   
   def read(str)

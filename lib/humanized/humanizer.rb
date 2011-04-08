@@ -17,6 +17,7 @@
 require 'facets/array/extract_options.rb'
 require 'facets/hash/deep_merge.rb'
 require 'sync'
+require 'logger'
 require 'set'
 require 'humanized/compiler.rb'
 require 'humanized/source.rb'
@@ -41,7 +42,103 @@ class Humanizer
     
   end
   
-  attr_reader :interpolater, :source, :compiler
+  class << self
+    
+    attr_accessor :logger
+    
+  private
+  
+    # Defines a component on this class and all subclasses.
+    def component( name, options = {}, &initializer )
+      @components ||= {}
+      options = options.dup
+      if !block_given?
+        initializer = lambda{|value| value}
+      end
+      options[:initializer] = initializer
+      options.freeze
+      @components[name.to_sym] = options
+      attr_accessor name
+      public name.to_sym
+      protected "#{name.to_s}=".to_sym
+      if options[:delegate]
+        if options[:delegate].kind_of? Hash
+          options[:delegate].each do | from, to |
+            module_eval <<RB
+  def #{from.to_s}(*args, &block)
+    #{name.to_s}.#{to.to_s}(*args,&block)
+  end
+RB
+          end
+        elsif options[:delegate].respond_to? :each
+          options[:delegate].each do | from |
+            module_eval <<RB
+  def #{from.to_s}(*args, &block)
+    #{name.to_s}.#{from.to_s}(*args,&block)
+  end
+RB
+          end
+        end
+        
+      end
+    end
+    
+  public
+    def each_component
+      klass = self
+      components = Set.new
+      while( klass )
+        a = klass.instance_variable_get("@components")
+        if a
+          a.each do |name, options|
+            unless components.include?(name)
+              yield(name, options)
+              components << name
+            end
+          end
+        end
+        klass = klass.superclass
+      end
+      
+    end
+    
+  end
+  
+  self.logger = Logger.new(STDERR)
+  
+  component :interpolater do |value|
+    value || PrivatObject.new
+  end
+  
+  component :source, :delegate =>[:package, :load , :<<, :get ] do |value|
+    if value.kind_of? Source
+      value
+    elsif value.kind_of? Hash
+      Source.new(value)
+    elsif value.nil?
+      Source.new
+    else
+      raise ArgumentError, "Expected :source to be a kind of Humanized::Source, Hash or nil."
+    end
+  end
+  
+  component :compiler do |value|
+    value || Compiler.new
+  end
+  
+  component :logger do |value|
+    if value.kind_of? Logger
+      value
+    elsif value.respond_to? :write and value.respond_to? :close
+      Logger.new(value)
+    elsif value.nil?
+      Humanizer.logger
+    elsif value.kind_of? FalseClass
+      value
+    else
+      raise ArgumentError, "Expected :logger to be a kind of Logger, IO, nil or false."
+    end
+  end
   
 # Creates a new Humanizer
 #
@@ -49,45 +146,53 @@ class Humanizer
 # @option components [Compiler] :compiler A compiler which can compile strings into procs. (see Compiler)
 # @option components [Source] :source A source which stores translated strings. (see Source)
   def initialize(components = {})
-    @interpolater = (components[:interpolater] || PrivatObject.new)
-    @compiler = (components[:compiler] || Compiler.new)
-    @source = (components[:source] || Source.new)
+    self.class.each_component do |name, options|
+      self.send("#{name}=".to_sym, options[:initializer].call(components[name]))
+    end
   end
+  
+  def self.new_from( humanizer, components = {} )
+    unless humanizer.kind_of? Humanizer
+      raise ArgumentError, "Expected an instance of Humanized::Humanizer, but received #{humanizer.inspect}"
+    end
+    components = components.dup
+    humanizer.class.each_component do |name, options|
+      unless components.key? name
+        components[name] = humanizer.send(name)
+      end
+    end
+    return self.new(components)
+  end
+  
   
 # Creates a new Humanizer which uses the interpolater, compiler and source of this Humanizer unless other values for them were specified.
 # @see #initialize
   def renew(components)
-    self.class.new({:interpolater=>@interpolater,:compiler=>@compiler,:source=>@source}.update(components))
+    self.class.new_from(self, components)
   end
   
 # Creates a String from the input. This will be the most used method in application code.
-# It expects a {Scope} as argument. Anything that is not a {Scope} will be converted into a {Scope} using the "_"-method.
+# It expects a {Query} as argument. Anything that is not a {Query} will be converted into a {Query} using the "_"-method.
 # This enables you to pass any object to this method. The result is mainly determined by result of the "_"-method.
 # For 
 #
-# @param [Scope, #_, Object] *args
+# @param [Query, #_, Object] *args
 # @return [String]
   def [](*args)
     it = args._
     
     vars = it.variables
     default = it.default
-    result = @source.get(it, default)
+    result = @source.get(it, :default=>default)
     result = default unless result.kind_of? String
     if result.kind_of? String
       return interpolate(result,vars)
     elsif default.__id__ != result.__id__
-      warn "[] should be only used for strings. For anything else use get."
+      if logger
+        logger.warn "[] should be only used for strings. For anything else use get."
+      end
     end
     return result
-  end
-
-# This is a wrapper for @source.get.
-# The only thing it does additionally is converting all params into a Scope.
-# @see Source#get
-  def get(base,*rest)
-    it = base._(*rest)
-    return @source.get(it, it.default)
   end
 
 # Stores a translation
@@ -96,26 +201,20 @@ class Humanizer
     @source.store(it._(*rest).first,last)
   end
   
-# This is an alias for @source.package
-# @see Source#package
-  def package(*args,&block)
-    @source.package(*args,&block)
-  end
-  
-# This is an alias for @source.load
-# @see Source#load
-  def load(*args,&block)
-    @source.load(*args,&block)
-  end
-  
-# This is an alias for @source.<<
-# @see Source#<<
-  def <<(x)
-    @source << x
-  end
-  
   def interpolate(str,vars={})
-    @compiler.compile(str).call(self,@interpolater,vars)
+    return @compiler.compile(str).call(self,@interpolater,vars)
+  rescue Exception => e
+    return handle_interpolation_exception(e, str, vars)
+  end
+  
+protected
+  def handle_interpolation_exception(e, str, vars)
+    if logger
+      logger.error do
+        "Failed interpolating \"#{str}\"\n\tVariables: #{vars.inspect}\n\tMessage: #{e.message}\n\tTrace:\t" + e.backtrace.join("\n\t\t")
+      end
+    end
+    return FailedInterpolation.new(e, str, vars)
   end
   
 end

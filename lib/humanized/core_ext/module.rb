@@ -16,7 +16,7 @@
 #
 class Module
   
-  # Generates a {Humanized::Scope scope} for a Module or Class. This will be used by default by
+  # Generates a {Humanized::Query query} for a Module or Class. This will be used by default by
   # this Module and by all Objects of this Class.
   def humanization_key!
     if self.anonymous?
@@ -26,7 +26,7 @@ class Module
     if h != Object and h.respond_to? :humanization_key
       result = h.humanization_key + self.basename.downcase.to_sym
     else
-      result = Humanized::Scope::Root.+(*self.name.split('::').map{|s| s.downcase.to_sym })
+      result = Humanized::Query::Root.+(*self.name.split('::').map{|s| s.downcase.to_sym })
     end
     thiz = self
     if defined? thiz.superclass and self.superclass != Object

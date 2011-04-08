@@ -24,11 +24,13 @@ module Number
     else
       it = number._.format( format._ | :default._ )
     end
-    f = humanizer.get(it)
+    f = humanizer.get(it, :undeflow=>:deny, :overflow => :deny)
     if f.kind_of? String
       return sprintf(f,number)
     end
-    warn "Unable to find Number format: #{it.inspect}."
+    if humanizer.logger
+      humanizer.logger.error "Unable to find Number format: #{it.inspect}."
+    end
     return ''
   end
   

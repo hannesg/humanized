@@ -36,7 +36,7 @@ describe Humanized::JsonSource do
     h.source.extend(Humanized::JsonSource)
     h.source.load(File.join(File.dirname(__FILE__),'data/de'), :grep=>'*.json')
     
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
+    h.get([:user,:female,:plural,:nominativ]._).should == 'Benutzerinnen'
     
   end
   
@@ -46,9 +46,9 @@ describe Humanized::JsonSource do
     
     h = Humanized::Humanizer.new
     h.source.extend(Humanized::JsonSource)
-    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.json'),:scope => :user._ )
+    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.json'),:query => :user._ )
     
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
+    h.get([:user,:female,:plural,:nominativ]._).should == 'Benutzerinnen'
     
   end
   

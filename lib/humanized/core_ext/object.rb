@@ -16,7 +16,12 @@
 #
 class Object
   def humanization_key
-    self.class.humanization_key
+    if self.frozen? or self.kind_of?(Float) or self.kind_of?(Fixnum)
+      i = self
+    else
+      i = self.dup.freeze
+    end
+    self.class.humanization_key.optionally(:instance).with_variables({:self => i })
   end
   def _(*args,&block)
     self.humanization_key._(*args,&block)

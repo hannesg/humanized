@@ -20,6 +20,7 @@ module Humanized
 class Source
   
   def initialize(data = {})
+    #TODO: data should maybe deep-copied
     @source = data
     @sync = Sync.new
     @loaded = Set.new
@@ -29,11 +30,11 @@ class Source
 # Loads a data-file or a dir of data-files.
 #
 # @param [String] path to a dir or file
-# @option opts [Scope] :scope the root scope, where the loaded data will be stored ( default: L )
+# @option opts [Query] :query the root query, where the loaded data will be stored ( default: L )
 # @option opts [String] :grep a grep to be used when a dir is given ( default: '**/*.*' )
 # @return self
   def load(path,opts ={})
-    options = {:scope => Scope::Root, :grep => '**/*.*'}.update(opts)
+    options = {:query => Query::Root, :grep => '**/*.*'}.update(opts)
     if File.directory?(path)
       f = File.join(path,options[:grep])
       package('grep:' + f) do
@@ -43,8 +44,8 @@ class Source
             if data
               xpath = file[path.size..(-1-File.extname(file).size)].split('/')
               xpath.shift if xpath.first == ''
-              xscope = options[:scope]._(*xpath.map(&:to_sym))
-              self.store(xscope.first,data)
+              xquery = options[:query]._(*xpath.map(&:to_sym))
+              self.store(xquery.first,data)
             end
           end
         end
@@ -53,7 +54,7 @@ class Source
       package('file:'+path) do
         data = self.read_file(path)
         if data
-          self.store(options[:scope].first,data)
+          self.store(options[:query].first,data)
         end
       end
     end
@@ -90,12 +91,32 @@ class Source
   end
 
 # Retrieves data
-# @param [Scope, #each] scope a scope containing the paths to search for
+# @param [Query, #each] query a query containing the paths to search for
 # @return [String, Object, nil] data
-  def get(scope, default = nil)
-    scope.each do |path|
-      result = find(path, @source)
-      return result unless result.nil?
+  def get(query, options = {})
+    underflow = options.fetch(:underflow, :accept)
+    overflow = options.fetch(:overflow, :deny)
+    default = options[:default]
+    query.each do |path|
+      result, value = find(path, @source)
+      case(result)
+        when :found 
+          return value
+        when :underflow
+          case( underflow )
+            when :accept
+              return value
+            when :default
+              return default
+          end
+        when :overflow
+          case( overflow )
+            when :accept
+              return value
+            when :default
+              return default
+          end
+      end
     end
     return default
   end
@@ -123,7 +144,7 @@ protected
         end
         hshc = hshc[a]
         while hshc.kind_of? Humanized::Ref
-          hshc = find(hshc, @source)
+          _, hshc = find(hshc, @source)
         end
       end
       if str.kind_of? Hash
@@ -151,18 +172,22 @@ protected
     l = path.length - 1
     (0...l).each do |i|
       a = path[i]
-      return nil unless hshc.key?(a)
+      return :missing, nil unless hshc.key?(a)
       hshc = hshc[a]
       while hshc.kind_of? Humanized::Ref
-        hshc = find(hshc, @source)
+        _, hshc = find(hshc, @source)
       end
-      return nil unless hshc.respond_to? :[]
+      return :overflow, hshc unless hshc.kind_of? Hash
     end
+    return :missing, nil unless hshc.key?(path[l])
     hshc = hshc[path[l]]
     while hshc.kind_of? Humanized::Ref
-      hshc = find(hshc, @source)
+      _, hshc = find(hshc, @source)
     end
-    return hshc
+    if hshc.kind_of? Hash
+      return :underflow, hshc
+    end
+    return :found, hshc
   end
   
 end

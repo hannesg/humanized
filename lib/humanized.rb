@@ -24,6 +24,22 @@ require "facets/module/alias_method_chain.rb"
 # readable output.
 module Humanized
   
+  class FailedInterpolation < String
+    
+    ERROR_STRING = '[error]'.freeze
+    
+    attr_reader :exception, :string, :variables
+    
+    def initialize(exception, string, variables)
+      @exception = exception
+      @string = string
+      @variables = variables
+      super(ERROR_STRING)
+    end
+    
+  end
+  
+  
   module HasNaturalGenus
     
     def self.included(base)
@@ -46,7 +62,7 @@ module Humanized
 end
 require "humanized/ref"
 require "humanized/humanizer"
-require "humanized/scope"
+require "humanized/query"
 Dir[File.expand_path('humanized/core_ext/*.rb', File.dirname(__FILE__))].each do |file|
   require file
 end

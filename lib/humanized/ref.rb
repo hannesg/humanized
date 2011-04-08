@@ -20,8 +20,32 @@ module Humanized
   # A Reference can be used to redirect lookups for certain paths.
   class Ref < Array
     
+    if self.respond_to? :yaml_tag
+      yaml_tag '!ref'
+    elsif YAML
+      YAML.add_builtin_type('ref') do | _ , data|
+        r = Ref.new
+        r.concat data
+        r.map!(&:to_sym)
+        r
+      end
+    end
+    
     def inspect
-      '!ref'+super
+      '!ref' + super
+    end
+    
+    def encode_with(coder)
+      coder.style = Psych::Nodes::Sequence::FLOW
+      coder.implicit = true
+      coder.tag = '!ref'
+      coder.seq = self
+    end
+    
+    def init_with(coder)
+      self.concat(coder.seq)
+      self.map! &:to_sym
+      return self
     end
     
   end

@@ -16,27 +16,27 @@
 #
 
 module Humanized
-# A {Scope} is _the_ way to tell a {Humanizer} what you want from it.
+# A {Query} is _the_ way to tell a {Humanizer} what you want from it.
 # It contains of three parts:
 # * {#path a list of paths}, which will be looked up in a {Source source}
 # * {#default a default}, which will be used if nothing was found
 # * {#variables variables}, which will be used to interpolate a found string
 # That's all you need!
-# The good thing: you'll unlikly create a scope by hand, that's done automatically with "_"!
+# The good thing: you'll unlikly create a query by hand, that's done automatically with "_"!
 #
 # == Examples
 #
 # The basic steps:
-#  # Creates a scope which looks up ":a" with no default and no variables:
+#  # Creates a query which looks up ":a" with no default and no variables:
 #  :a._
-#  # Creates a scope which looks up nothing, has a default of "String" but no variables:
+#  # Creates a query which looks up nothing, has a default of "String" but no variables:
 #  "String"._
-#  # Creates a scope which looks up nothing, has no default but the variable :foo = "bar"
+#  # Creates a query which looks up nothing, has no default but the variable :foo = "bar"
 #  {:foo => 'bar'}._
 #
 # Combining these steps brings the power:
 #
-#  # Creates a scope which looks up ":a", has a default of "String" and the variable :foo = "bar"
+#  # Creates a query which looks up ":a", has a default of "String" and the variable :foo = "bar"
 #  :a._ + "String"._ + {:foo => 'bar'}._
 #  # Shorthand for this:
 #  :a._("String", :foo => 'bar')
@@ -49,7 +49,7 @@ module Humanized
 #    class Admin < User
 #    end
 #  end
-#  # Creates a scope matching ":site, :admin" or ":site, :user":
+#  # Creates a query matching ":site, :admin" or ":site, :user":
 #  Site::Admin._
 #  # This creates the same:
 #  Site::Admin.new._
@@ -58,28 +58,28 @@ module Humanized
 #  # This matches ":a, :b, :c":
 #  [:a, :b, :c]._
 #
-# Finally for Scopes itself:
-#  # Given scope is a Scope this is always true:
-#  scope._._ == scope._
+# Finally for Querys itself:
+#  # Given query is a Query this is always true:
+#  query._._ == query._
 #
 # I could continue the whole day ...
 #
 # == Tricks
-# A Scope responds to any method giving a new Scope suffixed by the method name
+# A Query responds to any method giving a new Query suffixed by the method name
 #  # Looks up ":a, :b, :c"
 #  :a._.b.c
-# "_" can also take a block which is instance evaled on the scope:
+# "_" can also take a block which is instance evaled on the query:
 #  # Looks up ":a, :b, :c"
 #  :a._{ b.c }
 #  # Looks up ":a, :x" or ":a, :y"
 #  :a._{ x | y }
-# There are two special scopes:
+# There are two special querys:
 #  # Looks up "", which will we be the whole source
-#  Humanized::Scope::Root
+#  Humanized::Query::Root
 #  # Looks up nothing
-#  Humanized::Scope::None
+#  Humanized::Query::None
 #
-  class Scope
+  class Query
     
     include Enumerable
 # @private
@@ -92,25 +92,25 @@ module Humanized
     attr_reader :path, :depth, :variables, :default
   
     def self.from_str(str)
-      Scope.new([ str.explode('.').map(&:to_sym) ])
+      Query.new([ str.explode('.').map(&:to_sym) ])
     end
   
-    def initialize(path = [[]], depth = 1, variables = {}, default = nil)
+    def initialize(path = [[]], depth = nil, variables = {}, default = nil)
       @path = path.uniq
-      @path.each do |path|
-        path.freeze
+      @path.each do |p|
+        p.freeze
       end
       @path.freeze
-      @depth = depth
+      @depth = (depth || @path.size)
       @variables = variables
       @default = default
     end
 
 # This method is a here to enable awesome DSL.
 #== Example
-#  s = Scope.new
-#  s.defining.a.scope.using_methods # gives: (defining.a.scope.using_methods)
-#  s.defining(:a,:scope,:using_methods) # gives: (defining.a.scope.using_methods)
+#  s = Query.new
+#  s.defining.a.query.using_methods # gives: (defining.a.query.using_methods)
+#  s.defining(:a,:query,:using_methods) # gives: (defining.a.query.using_methods)
 #  s.this{ is.awesome | is.awful } # gives: (this.is.awesome , this.is.awful)
 # 
     def method_missing(name, *args, &block)
@@ -126,17 +126,21 @@ module Humanized
     end
     
     def ==(other)
-      return false unless other.kind_of? Scope
-      return @path == other.path
+      return false unless other.kind_of? Query
+      if @path == other.path and @variables == other.variables and @default == other.default and @depth == other.depth
+        return true
+      else
+        return false
+      end
     end
     
-# Creates a {Scope scope} which matches either self or the other scope.
+# Creates a {Query query} which matches either self or the other query.
 # @example
 #  # this will match ":to_be" and ":not_to_be":
 #  ( :to_be._ | :not_to_be._ )
 #
-# @param [Scope] other another scope
-# @return [Scope] a new scope
+# @param [Query] other another query
+# @return [Query] a new query
     def |(other)
       return other if @path.none?
       return self.dup if other.none?
@@ -153,17 +157,17 @@ module Humanized
         i = i + sd
         j = j + od
       end
-      return Scope.new( result, sd + od , self.variables.merge(other.variables), other.default)
+      return Query.new( result, sd + od , self.variables.merge(other.variables), other.default)
     end
     
-# Creates a new scope which will optionally match this scope suffixed with the key.
+# Creates a new query which will optionally match this query suffixed with the key.
 #
 # @example
 #  # this will match ":borat_is_stupid, :not" and ":borat_is_stupid":
 #  :borat_is_stupid._.optionally(:not)
 #
 # @param key 
-# @return [Scope] a new scope
+# @return [Query] a new query
     def optionally(key)
       return self._(key) | self
     end
@@ -179,21 +183,21 @@ module Humanized
           result << path + [arg]
         end
       end
-      return Scope.new( result, args.size )
+      return Query.new( result, args.size )
     end
     
-# Chain scopes together
+# Chain querys together
 # @example
 #  # this will match ":a,:b,:c"
 #  :a._ + :b._ + :c._
 #
-# @param *args an array of scopes for chaining
-# @return [Scope]
+# @param *args an array of querys for chaining
+# @return [Query]
     def +(*args)
       return self if args.none?
-      if( args.first.kind_of? Scope )
+      if( args.first.kind_of? Query )
         s = args.first
-        return Scope.new(@path, @depth, variables.merge(s.variables), self.default || s.default ) if @path.none? or s.path.none?
+        return Query.new(@path, @depth, variables.merge(s.variables), self.default || s.default ) if @path.none? or s.path.none?
         # TODO: maybe modify depth too?
         new_path = []
         @path.each do |x|
@@ -201,12 +205,12 @@ module Humanized
             new_path << x + path
           end
         end
-        return Scope.new(new_path, s.depth, variables.merge(s.variables), self.default || s.default )
+        return Query.new(new_path, s.depth, variables.merge(s.variables), self.default || s.default )
       end
       if @path.none?
         return self
       end
-      return Scope.new( @path.map{|x| x + args} , @depth , @variables, @default)
+      return Query.new( @path.map{|x| x + args} , @depth , @variables, @default)
     end
     
     def _(*args,&block)
@@ -215,9 +219,9 @@ module Humanized
       loop do
         break if args.none?
         arg = args.shift
-        if arg.kind_of? Symbol or arg.kind_of? Scope
+        if arg.kind_of? Symbol or arg.kind_of? Query
           thiz += arg
-        elsif arg.class == Hash
+        elsif arg.respond_to? :humanized_variables? and arg.humanized_variables?
           vars = arg
         else
           thiz += arg._
@@ -234,11 +238,11 @@ module Humanized
     end
   
     def with_variables(vars)
-      Scope.new(@path, @depth, variables.merge(vars), @default)
+      Query.new(@path, @depth, variables.merge(vars), @default)
     end
     
     def with_default(default)
-      Scope.new(@path, @depth, @variables, default)
+      Query.new(@path, @depth, @variables, default)
     end
   
     def inspect

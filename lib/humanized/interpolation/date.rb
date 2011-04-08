@@ -19,16 +19,18 @@ module Humanized
 module Date
   
   def date(humanizer, date, format = 'default')
-    if format == 'default'
+    if format == 'default' or format.nil?
       it = date._(:format,:default)
     else
       it = date._.format( format._ | :default._ )
     end
-    f = humanizer.get(it)
+    f = humanizer.get(it, :undeflow=>:deny, :overflow => :deny)
     if f.kind_of? String
       return date.strftime( f )
     end
-    warn 'Unable to find Date format: #{it.inspect}.'
+    if humanizer.logger
+      humanizer.logger.error "Unable to find Date format: #{it.inspect}."
+    end
     return ''
   end
   

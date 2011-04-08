@@ -19,7 +19,7 @@ class Array
     if self.any?
       return self[0]._(*self[1..-1])._(*args,&block)
     else
-      Humanized::Scope::None
+      Humanized::Query::None
     end
   end
 end

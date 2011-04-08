@@ -20,6 +20,41 @@ require "humanized.rb"
 
 describe Humanized::Compiler do
   
+  describe Humanized::CompilerBase do
+    
+    it "should raise when compile! is not defined" do
+      
+      class BadCompiler < Humanized::CompilerBase
+        
+        
+      end
+      
+      lambda do
+        BadCompiler.new.compile('foo')
+      end.should raise_error(NoMethodError)
+      
+    end
+    
+  end
+  
+  describe Humanized::Compiled do
+    
+    it "should know it's original string'" do
+      
+      cc = Humanized::Compiler.new
+      str = "Lorem Ipsum dolor"
+      ll = cc.compile(str)
+      
+      ll.to_s.should == str
+      
+      str << "sit amet"
+      
+      ll.to_s.should_not == str
+      
+    end
+    
+  end
+  
   describe "reader" do
   
     it "should work with empty strings" do
@@ -43,6 +78,13 @@ describe Humanized::Compiler do
       
     end
     
+    it "should work with simple methods" do
+      
+      c = Humanized::Compiler.new
+      c.send(:read, '[method]').should == [{:method=>'method',:args=>[]}]
+      
+    end
+    
     it "should work with methods in strings" do
       
       c = Humanized::Compiler.new
@@ -61,7 +103,8 @@ describe Humanized::Compiler do
       c.send(:read, 'a [bad|').should == ['a [bad|']
       c.send(:read, 'a [bad|method').should == ['a [bad|method']
       c.send(:read, 'a [bad|method[call]').should == ['a [bad|method[call]']
-      
+      c.send(:read, 'a [ bad|method|call]').should == ['a [ bad|method|call]']
+      c.send(:read, 'a [bad |method|call]').should == ['a [bad |method|call]']
     end
     
     it "should not be confused with strange method calls" do

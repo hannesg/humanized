@@ -16,6 +16,6 @@
 #
 class NilClass
   def _(*args,&block)
-    Humanized::Scope::None._(*args,&block)
+    Humanized::Query::None._(*args,&block)
   end
 end

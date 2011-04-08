@@ -27,7 +27,7 @@ describe Humanized::YamlSource do
     h.source.extend(Humanized::YamlSource)
     h.source.load(File.join(File.dirname(__FILE__),'data/de'), :grep=>'*.yml')
     
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
+    h.get([:user,:female,:plural,:nominativ]._).should == 'Benutzerinnen'
     
   end
   
@@ -37,9 +37,9 @@ describe Humanized::YamlSource do
     
     h = Humanized::Humanizer.new
     h.source.extend(Humanized::YamlSource)
-    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:scope => :user._ )
+    h.source.load(File.join(File.dirname(__FILE__),'data/de/user.yml'),:query => :user._ )
     
-    h.get(:user,:female,:plural,:nominativ).should == 'Benutzerinnen'
+    h.get([:user,:female,:plural,:nominativ]._).should == 'Benutzerinnen'
     
   end
   

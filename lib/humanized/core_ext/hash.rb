@@ -16,10 +16,14 @@
 #
 class Hash
   def _(*args,&block)
-    if self.class == Hash
-      Humanized::Scope::None._(*args,&block).with_variables(self)
+    if humanized_variables?
+      Humanized::Query::Root._(*args,&block).with_variables(self)
     else
       super
     end
+  end
+  
+  def humanized_variables?
+    true
   end
 end

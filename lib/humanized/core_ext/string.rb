@@ -16,6 +16,6 @@
 #
 class String
   def _(*args,&block)
-    Humanized::Scope::None._(*args,&block).with_default(self)
+    Humanized::Query::Root._(*args,&block).with_default(self.dup)
   end
 end

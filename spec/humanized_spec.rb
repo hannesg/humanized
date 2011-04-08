@@ -15,6 +15,7 @@
 #    (c) 2011 by Hannes Georg
 #
 require "helper.rb"
+require "date.rb"
 
 require "humanized.rb"
 require "humanized/interpolation/date.rb"
@@ -36,35 +37,35 @@ describe Humanized do
   
   end
   
-  it "should create scopes correctly" do
+  it "should create querys correctly" do
     
-    Testing::User._.should == Humanized::Scope.new([[:testing,:user]])
-    Testing::Admin._.should == Humanized::Scope.new([[:testing,:admin],[:testing,:user]])
+    Testing::User._.should == Humanized::Query.new([[:testing,:user]])
+    Testing::Admin._.should == Humanized::Query.new([[:testing,:admin],[:testing,:user]])
     
-    [Testing::User, :x]._.should == Humanized::Scope.new([[:testing,:user,:x]])
+    [Testing::User, :x]._.should == Humanized::Query.new([[:testing,:user,:x]])
     
-    []._.should == Humanized::Scope::None
+    []._.should == Humanized::Query::None
     
-    nil._.should == Humanized::Scope::None
+    nil._.should == Humanized::Query::None
     
   end
 
-  describe Humanized::Scope do
+  describe Humanized::Query do
     
     it "should be awesome" do
       
-      s = Humanized::Scope.new
-      (s.a | s.b).should == Humanized::Scope.new([[:a],[:b]])
+      s = Humanized::Query.new
+      (s.a | s.b).should == Humanized::Query.new([[:a],[:b]])
       
-      s._{ a | b }.should == Humanized::Scope.new([[:a],[:b]])
+      s._{ a | b }.should == Humanized::Query.new([[:a],[:b]])
       
-      s._(:a,Testing::User).should == Humanized::Scope.new([[:a,:testing,:user]])
+      s._(:a,Testing::User).should == Humanized::Query.new([[:a,:testing,:user]])
       
     end
     
-    it "scope._ should equal scope" do
+    it "query._ should equal query" do
       
-      s = Humanized::Scope.new
+      s = Humanized::Query.new
       
       s._.should == s
       
@@ -72,21 +73,79 @@ describe Humanized do
       
     end
     
-    it "should support optional elements" do
+    describe "hashes" do
       
-      s = Humanized::Scope.new([[:mandatory]]).optional?
+      it "should translate hashes to options" do
+        
+        h = {:x => 'y'}
+        
+        h._.variables.should == h
+        
+      end
       
-      s.should == Humanized::Scope.new([[:mandatory,:optional],[:mandatory]],2)
+      it "should dup variables" do
+        
+        h = {:x => 'y'}
+        
+        q = h._
+        
+        h[:x] = 'z'
+        
+        q.variables.should_not == h
+        
+      end
       
-      Humanized::Scope.new[:to_be, :not_to_be].is_the_question.should == Humanized::Scope.new([[:to_be,:is_the_question],[:not_to_be,:is_the_question]])
+      it "should be consistent" do
+        
+        hash = {:x => 'y'}
+        query = Humanized::Query.new([[:nuke]])
+        result = Humanized::Query.new([[:nuke]]).with_variables({:x => 'y'})
+        
+        query._(hash).should == result
+        query._(hash._).should == result
+        (query._ + hash._).should == result
+        
+        hash._(query).should == result
+        (hash._ + query._).should == result
+        
+      end
+       
+      it "should respect if hash subclasses do not want to be variables" do
+        
+        class ScepticHash < Hash
+          
+          def humanized_variables?
+            false
+          end
+          
+        end
+        
+        h = ScepticHash.new
+        h[:x] = 'y'
+        
+        h._.should == Humanized::Query.new([[:sceptichash, :instance],[:hash, :instance],[:sceptichash],[:hash]]).with_variables(:self=>h)
+        
+        h._.variables.should == {:self => h}
+        
+      end
       
     end
     
-    describe "the empty scope" do
+    it "should support optional elements" do
+      
+      s = Humanized::Query.new([[:mandatory]]).optional?
+      
+      s.should == Humanized::Query.new([[:mandatory,:optional],[:mandatory]],2)
+      
+      Humanized::Query.new[:to_be, :not_to_be].is_the_question.should == Humanized::Query.new([[:to_be,:is_the_question],[:not_to_be,:is_the_question]])
+      
+    end
+    
+    describe "the empty query" do
       
       it "should stay empty" do
         
-        Humanized::Scope::None._(:x).should == Humanized::Scope::None
+        Humanized::Query::None._(:x).should == Humanized::Query::None
         
       end
       
@@ -96,114 +155,52 @@ describe Humanized do
         
         h = Humanized::Humanizer.new
         
-        h[Humanized::Scope::None.with_default(d)].should == d
+        h[Humanized::Query::None.with_default(d)].should == d
         
       end
       
       it "should not interfere with or" do
         
-        s = Humanized::Scope.new([[:a,:b]])
+        s = Humanized::Query.new([[:a,:b]])
         
-        ( s | Humanized::Scope::None ).should == s
-        
-      end
-      
-    end
-    
-  end
-
-  describe "[]" do
-    
-    it "should work" do
-      
-data = <<YAML
----
-:name :
-  :genus : :male
-  :singular :
-    :nominativ : Name
-:testing :
-  :user :
-    :genus : :male
-    :singular :
-      :nominativ : Benutzer
-      :genitiv : Benutzers
-    :plural :
-      :nominativ : Benutzer
-      :genitiv : Benutzer
-    :attributes :
-      :name : !seq:Humanized::Ref [:name]
-YAML
-      d = YAML.load(data)
-      #pp d
-      
-      H = humanizer = Humanized::Humanizer.new
-      H.source.package('test') do |source|
-        
-        source << d
+        ( s | Humanized::Query::None ).should == s
         
       end
-      
-      class Testing::Superadmin < Testing::Admin
-        
-        H[_.singular] = {:nominativ=>'Superadmin'}
-        H[_.plural] = {:nominativ=>'Superadmins'}
-        
-      end
-      
-      H[Testing::Superadmin._.singular.nominativ].should == 'Superadmin'
-      H[Testing::Superadmin,:singular,:nominativ].should == 'Superadmin'
-
-      a = Testing::Admin.new
-      
-      #puts H[a,:singular,:nominativ, {:x=>'Y'}]
-      
-      #puts Testing::Admin._(:self).inspect
-      #puts Testing::Admin._.attribute(:name).inspect
-      
-      #puts a._.inspect
-      #puts a._.attributes[:name].inspect
-      
-      #puts humanizer.lookup(a._.attributes(:name)).inspect
-
-    end
-    
-    
-    it "should simply passthrough strings" do
-      
-      h = Humanized::Humanizer.new
-      
-      h['String'].should == 'String'
-      
-    end
-    
-    it "should format numbers" do
-      
-      h = Humanized::Humanizer.new(:interpolater => Humanized::Humanizer::PrivatObject.new)
-      h.interpolater.extend(Humanized::Number)
-      
-      
-      h[:numeric, :format ,:default]='%d'
-      h[:numeric, :format ,:scientific]='%e'
-      
-      h[2].should == '2'
-      h[2, {:format => :scientific}].should == '2.000000e+00'
-      h[2, {:format => :weird}].should == '2'
       
     end
     
   end
   
+  
   describe Humanized::Date do
     
-    it "should translate dates" do
+     it "should translate dates" do
+      
+      h = Humanized::Humanizer.new
+      h.interpolater.extend(Humanized::Date)
+      
+      t = Date.new(2010,10,18)
+      
+      h[Date,:format,:default] = '%Y-%m-%d'
+      h[Date,:instance] = '[date|%self|%format]'
+      
+      h.interpolate('[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d')
+      
+      h[t].should == t.strftime('%Y-%m-%d')
+      
+      h[t, {:format => :default} ].should == t.strftime('%Y-%m-%d')
+      
+    end
+    
+    it "should translate times" do
       
       h = Humanized::Humanizer.new
       h.interpolater.extend(Humanized::Date)
       
       t = Time.mktime(2010,10,18,9,58,1)
       
-      h[t,:format,:default] = '%Y-%m-%d %H:%M:%S'
+      h[Time,:format,:default] = '%Y-%m-%d %H:%M:%S'
+      h[Time,:instance] = '[date|%self|%format]'
       
       h.interpolate('[date|%time]',{:time => t}).should == t.strftime('%Y-%m-%d %H:%M:%S')
       
@@ -280,6 +277,13 @@ YAML
       s.store([:x,:a],'c')
       
       s.get([[:z,:a]]).should == 'c'
+      
+    end
+    
+    it "should be yamled correctly" do
+      
+      ref = Humanized::Ref.new << :a << :b << :c
+      YAML.load(YAML.dump(ref)).should == ref
       
     end
     
