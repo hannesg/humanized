@@ -36,6 +36,7 @@ describe Humanized::JsonSource do
     h.source.extend(Humanized::JsonSource)
     h.source.load(File.join(File.dirname(__FILE__),'data/de'), :grep=>'*.json')
     
+    h.get([:user]._).should == 'Benutzer'
     h.get([:user,:female,:plural,:nominativ]._).should == 'Benutzerinnen'
     
   end

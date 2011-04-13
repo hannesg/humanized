@@ -34,6 +34,17 @@ describe Humanized::German do
           :nominativ => 'other'
         }
       }
+      h[:simple] = {
+        :singular => 'simple',
+        :plural => 'simples'
+      }
+      
+      h[:simplest] = 'simplest'
+      
+      h[:stranger] = {
+        :nominativ => 'stranger',
+        :genitiv => 'stranger\'s'
+      }
 
       h.interpolater.extend(Humanized::German)
 
@@ -42,6 +53,15 @@ describe Humanized::German do
 
       h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
       h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
+      
+      h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:simple).should == 'simple'
+      h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:simple).should == 'simples'
+      
+      h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:simplest).should == 'simplest'
+      h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:simplest).should == 'simplest'
+      
+      h.interpolate('[n|%i|%thing]',:i => 1,:thing=>:stranger).should == 'stranger'
+      h.interpolate('[n|%i|%thing]',:i => 2,:thing=>:stranger).should == 'stranger'
 
     end
 

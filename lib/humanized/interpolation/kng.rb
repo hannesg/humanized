@@ -43,11 +43,17 @@ module KNG
     end
     
     def to_s
+      return @kng_humanizer.get(__getobj__._(__generate_paths__))
+    end
+    
+  protected
+    
+    def __generate_paths__
+      a = Query::Root
       if @kng_genus
-        return @kng_humanizer[__getobj__._.optionally(@kng_genus)._(@kng_numerus, @kng_kasus)]
-      else
-        return @kng_humanizer[__getobj__._(@kng_numerus, @kng_kasus)]
+        a = a.optionally(@kng_genus)
       end
+      return a.optionally(@kng_numerus).optionally(@kng_kasus)
     end
     
   end

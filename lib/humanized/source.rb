@@ -19,6 +19,8 @@ module Humanized
 # A source lets you lookup,store and load data needed for humanization.
 class Source
   
+  VALUE_KEY = :_
+  
   def initialize(data = {})
     #TODO: data should maybe deep-copied
     @source = data
@@ -94,8 +96,9 @@ class Source
 # @param [Query, #each] query a query containing the paths to search for
 # @return [String, Object, nil] data
   def get(query, options = {})
-    underflow = options.fetch(:underflow, :accept)
+    underflow = options.fetch(:underflow, :value)
     overflow = options.fetch(:overflow, :deny)
+    missing = options.fetch(:missing, :deny)
     default = options[:default]
     query.each do |path|
       result, value = find(path, @source)
@@ -106,6 +109,8 @@ class Source
           case( underflow )
             when :accept
               return value
+            when :value
+              return value[VALUE_KEY]
             when :default
               return default
           end
@@ -115,6 +120,10 @@ class Source
               return value
             when :default
               return default
+          end
+        when :missing
+          if missing == :value and value
+            return value[VALUE_KEY]
           end
       end
     end
@@ -130,6 +139,24 @@ class Source
   
 protected
   
+  HASH_MERGER = lambda{|key,a,b|
+    ah = a.kind_of?(Hash)
+    bh = b.kind_of?(Hash)
+    if ah
+      if bh
+        a.merge(b, &HASH_MERGER)
+      else
+        a.merge({VALUE_KEY=>b})
+      end
+    else
+      if bh
+        b.merge({VALUE_KEY=>a})
+      else
+        b
+      end
+    end
+  }
+  
   def store!(path ,str, hsh = @source)
     @sync.synchronize(Sync::EX){
       hshc = hsh
@@ -142,13 +169,17 @@ protected
         unless hshc.key?(a)
           hshc[a] = {}
         end
-        hshc = hshc[a]
-        while hshc.kind_of? Humanized::Ref
-          _, hshc = find(hshc, @source)
+        #hshc[a].kind_of? Humanized::Ref or
+        unless  hshc[a].kind_of? Hash
+          hshc[a] = { VALUE_KEY => hshc[a] }
         end
+        hshc = hshc[a]
+#        while hshc.kind_of? Humanized::Ref
+#          _, hshc = find(hshc, @source)
+#        end
       end
       if str.kind_of? Hash
-        hshc.deep_merge!(str)
+        hshc.merge!(str, &HASH_MERGER)
       else
         hshc[path[l]] = str
       end
@@ -172,18 +203,18 @@ protected
     l = path.length - 1
     (0...l).each do |i|
       a = path[i]
-      return :missing, nil unless hshc.key?(a)
+      return :missing, hshc unless hshc.key?(a)
       hshc = hshc[a]
-      while hshc.kind_of? Humanized::Ref
-        _, hshc = find(hshc, @source)
-      end
+#      while hshc.kind_of? Humanized::Ref
+#        _, hshc = find(hshc, @source)
+#      end
       return :overflow, hshc unless hshc.kind_of? Hash
     end
     return :missing, nil unless hshc.key?(path[l])
     hshc = hshc[path[l]]
-    while hshc.kind_of? Humanized::Ref
-      _, hshc = find(hshc, @source)
-    end
+#    while hshc.kind_of? Humanized::Ref
+#      _, hshc = find(hshc, @source)
+#    end
     if hshc.kind_of? Hash
       return :underflow, hshc
     end
