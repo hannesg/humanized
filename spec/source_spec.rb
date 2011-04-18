@@ -14,40 +14,26 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+require "helper.rb"
+require "date.rb"
 
-module Humanized
+describe Humanized::Source do
   
-  # A Reference can be used to redirect lookups for certain paths.
-  class Ref < Array
+  it "should support hash values" do
     
-    if self.respond_to? :yaml_tag
-      yaml_tag '!ref'
-    elsif YAML
-      YAML.add_builtin_type('ref') do | _ , data|
-        r = Ref.new
-        r.concat data
-        r.map!(&:to_sym)
-        r
-      end
-    end
+    s = Humanized::Source.new
+    s.store([], :a => "a" , :b => "b" )
+    s.store([:a], {:x => "y" })
+    s.store([:a], {:x => { :z => "z" } })
     
-    def inspect
-      '!ref' + super
-    end
+    s.store([], {:b=>{:x => "y" }})
+    s.store([], {:b=>{:x => { :z => "z" } }})
     
-    def encode_with(coder)
-      coder.style = Psych::Nodes::Sequence::FLOW
-      coder.implicit = true
-      coder.tag = '!ref'
-      coder.seq = self
-    end
-    
-    def init_with(coder)
-      self.concat(coder.seq)
-      self.map! &:to_sym
-      return self
-    end
+    s.get([[:a]]).should == "a"
+    s.get([[:a, :x]]).should == "y"
+    s.get([[]]).should be_nil
     
   end
+  
   
 end

@@ -112,6 +112,14 @@ describe Humanized::Wrapper do
     w2._.should == u._
     
   end
+  
+  it "should fail if passed an ordinary object" do
+    
+    lambda{
+      Humanized::Wrapper.new(Object.new, Object.new)
+    }.should raise_error
+    
+  end
 
 
 end

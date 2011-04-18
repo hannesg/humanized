@@ -14,7 +14,7 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-
+require 'logger'
 require "facets/module/home.rb"
 require "facets/module/basename.rb"
 require "facets/module/anonymous.rb"
@@ -39,6 +39,11 @@ module Humanized
     
   end
   
+  class << self
+    attr_accessor :logger
+  end
+  
+  self.logger = Logger.new(STDERR)
   
   module HasNaturalGenus
     
@@ -60,7 +65,6 @@ module Humanized
   end
   
 end
-require "humanized/ref"
 require "humanized/humanizer"
 require "humanized/query"
 Dir[File.expand_path('humanized/core_ext/*.rb', File.dirname(__FILE__))].each do |file|

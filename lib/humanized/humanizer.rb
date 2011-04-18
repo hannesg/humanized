@@ -32,6 +32,8 @@ module Humanized
 # The most important method you may use is {#[]}.
 class Humanizer
   
+  IS_STRING = lambda{|x| x.kind_of? String }
+  
   # This is a simple object without public methods. You can use this as a collection for interpolation methods.
   class PrivatObject
     public_instance_methods.each do |meth|
@@ -43,8 +45,6 @@ class Humanizer
   end
   
   class << self
-    
-    attr_accessor :logger
     
   private
   
@@ -104,8 +104,6 @@ RB
     
   end
   
-  self.logger = Logger.new(STDERR)
-  
   component :interpolater do |value|
     value || PrivatObject.new
   end
@@ -132,7 +130,7 @@ RB
     elsif value.respond_to? :write and value.respond_to? :close
       Logger.new(value)
     elsif value.nil?
-      Humanizer.logger
+      Humanized.logger
     elsif value.kind_of? FalseClass
       value
     else
@@ -145,23 +143,31 @@ RB
 # @option components [Object] :interpolater This object which has all interpolation methods defined as public methods.
 # @option components [Compiler] :compiler A compiler which can compile strings into procs. (see Compiler)
 # @option components [Source] :source A source which stores translated strings. (see Source)
+# @option components [Logger, IO, false] :logger A logger for this Humanizer or false to disable logging.
   def initialize(components = {})
     self.class.each_component do |name, options|
       self.send("#{name}=".to_sym, options[:initializer].call(components[name]))
     end
   end
   
+# Creates a new Humanizer deriving compponents from another humanizer
+# @param humanizer [Humanizer]
+# @see #initialize
   def self.new_from( humanizer, components = {} )
     unless humanizer.kind_of? Humanizer
       raise ArgumentError, "Expected an instance of Humanized::Humanizer, but received #{humanizer.inspect}"
     end
-    components = components.dup
-    humanizer.class.each_component do |name, options|
-      unless components.key? name
-        components[name] = humanizer.send(name)
+    if self <= humanizer.class
+      components = components.dup
+      humanizer.class.each_component do |name, options|
+        unless components.key? name
+          components[name] = humanizer.send(name)
+        end
       end
+      return self.new(components)
+    else
+       raise ArgumentError, "I don't know if that's a good idea what you want. Maybe will be allowed later..."
     end
-    return self.new(components)
   end
   
   
@@ -183,16 +189,18 @@ RB
     
     vars = it.variables
     default = it.default
-    result = @source.get(it, :default=>default)
+    result = @source.get(it, :default=>default, :accepts=>IS_STRING)
     result = default unless result.kind_of? String
     if result.kind_of? String
       return interpolate(result,vars)
-    elsif default.__id__ != result.__id__
+    else
       if logger
-        logger.warn "[] should be only used for strings. For anything else use get."
+        logger.error do
+          "Expected to retrieve a String, but got: #{result.inspect}\n\tQuery: #{it.inspect}"
+        end
       end
+      return ""
     end
-    return result
   end
 
 # Stores a translation

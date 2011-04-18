@@ -98,8 +98,6 @@ data = <<YAML
     :plural :
       :nominativ : Benutzer
       :genitiv : Benutzer
-    :attributes :
-      :name : !ref [name]
 YAML
       d = YAML.load(data)
       

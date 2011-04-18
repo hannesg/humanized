@@ -21,6 +21,8 @@ class Source
   
   VALUE_KEY = :_
   
+  NOT_NIL_LAMBDA = lambda{|x| !x.nil? }
+  
   def initialize(data = {})
     #TODO: data should maybe deep-copied
     @source = data
@@ -32,7 +34,7 @@ class Source
 # Loads a data-file or a dir of data-files.
 #
 # @param [String] path to a dir or file
-# @option opts [Query] :query the root query, where the loaded data will be stored ( default: L )
+# @option opts [Query] :query the root query, where the loaded data will be stored ( default: Root )
 # @option opts [String] :grep a grep to be used when a dir is given ( default: '**/*.*' )
 # @return self
   def load(path,opts ={})
@@ -96,36 +98,11 @@ class Source
 # @param [Query, #each] query a query containing the paths to search for
 # @return [String, Object, nil] data
   def get(query, options = {})
-    underflow = options.fetch(:underflow, :value)
-    overflow = options.fetch(:overflow, :deny)
-    missing = options.fetch(:missing, :deny)
     default = options[:default]
+    accepts = options.fetch(:accepts,NOT_NIL_LAMBDA )
     query.each do |path|
-      result, value = find(path, @source)
-      case(result)
-        when :found 
-          return value
-        when :underflow
-          case( underflow )
-            when :accept
-              return value
-            when :value
-              return value[VALUE_KEY]
-            when :default
-              return default
-          end
-        when :overflow
-          case( overflow )
-            when :accept
-              return value
-            when :default
-              return default
-          end
-        when :missing
-          if missing == :value and value
-            return value[VALUE_KEY]
-          end
-      end
+      v = @source[path]
+      return v if accepts.call(v)
     end
     return default
   end
@@ -134,58 +111,27 @@ class Source
 # @param [Array] path a path to store the data at
 # @param [Object] data the data to store
   def store(path ,data)
-    store!(path, data)
+    @sync.synchronize(Sync::EX){
+      if data.kind_of? Hash
+        data.each do |key, value|
+          if key.kind_of? Array
+            store( path + key, value)
+            next
+          end
+          key = key.to_sym
+          if key == VALUE_KEY
+            store( path, value )
+          else
+            store( path + [key], value)
+          end
+        end
+      else
+        @source[path] = data
+      end
+    }
   end
   
 protected
-  
-  HASH_MERGER = lambda{|key,a,b|
-    ah = a.kind_of?(Hash)
-    bh = b.kind_of?(Hash)
-    if ah
-      if bh
-        a.merge(b, &HASH_MERGER)
-      else
-        a.merge({VALUE_KEY=>b})
-      end
-    else
-      if bh
-        b.merge({VALUE_KEY=>a})
-      else
-        b
-      end
-    end
-  }
-  
-  def store!(path ,str, hsh = @source)
-    @sync.synchronize(Sync::EX){
-      hshc = hsh
-      l = path.length - 1
-      if str.kind_of? Hash
-        l += 1
-      end
-      (0...l).each do |i|
-        a = path[i]
-        unless hshc.key?(a)
-          hshc[a] = {}
-        end
-        #hshc[a].kind_of? Humanized::Ref or
-        unless  hshc[a].kind_of? Hash
-          hshc[a] = { VALUE_KEY => hshc[a] }
-        end
-        hshc = hshc[a]
-#        while hshc.kind_of? Humanized::Ref
-#          _, hshc = find(hshc, @source)
-#        end
-      end
-      if str.kind_of? Hash
-        hshc.merge!(str, &HASH_MERGER)
-      else
-        hshc[path[l]] = str
-      end
-      return nil
-    }
-  end
   
   def read_file(file)
     ext = File.extname(file)[1..-1]
@@ -193,32 +139,9 @@ protected
     if self.respond_to?(meth)
       return self.send(meth,file)
     else
-      warn "No reader found for #{ext}."
+      Humanized.logger.warn "No reader found for #{ext}."
       return nil
     end
-  end
-  
-  def find(path, hsh)
-    hshc = hsh
-    l = path.length - 1
-    (0...l).each do |i|
-      a = path[i]
-      return :missing, hshc unless hshc.key?(a)
-      hshc = hshc[a]
-#      while hshc.kind_of? Humanized::Ref
-#        _, hshc = find(hshc, @source)
-#      end
-      return :overflow, hshc unless hshc.kind_of? Hash
-    end
-    return :missing, nil unless hshc.key?(path[l])
-    hshc = hshc[path[l]]
-#    while hshc.kind_of? Humanized::Ref
-#      _, hshc = find(hshc, @source)
-#    end
-    if hshc.kind_of? Hash
-      return :underflow, hshc
-    end
-    return :found, hshc
   end
   
 end
