@@ -49,13 +49,40 @@ describe Humanized do
     nil._.should == Humanized::Query::None
     
   end
+  
+  it "should be robust" do
+    
+    h = Humanized::Humanizer.new( :logger => false )
+    
+    h.interpolater << Module.new{
+      def crash(*args, &block)
+        @crashes ||= 0
+        @crashes = @crashes + 1
+        return "crash"
+      end
+      
+      def crashes
+        @crashes ||= 0
+      end
+      
+    }
+    
+    h["[eval|crash]"].should be_a(Humanized::FailedInterpolation)
+    
+    h["[send|crash]"].should be_a(Humanized::FailedInterpolation)
+    
+    h["[method|crash]"].should be_a(Humanized::FailedInterpolation)
+    
+    h.interpolater.object.crashes.should == 0
+    
+  end
 
   describe Humanized::Date do
     
      it "should translate dates" do
       
       h = Humanized::Humanizer.new
-      h.interpolater.extend(Humanized::Date)
+      h.interpolater << Humanized::Date
       
       t = Date.new(2010,10,18)
       
@@ -73,7 +100,7 @@ describe Humanized do
     it "should translate times" do
       
       h = Humanized::Humanizer.new
-      h.interpolater.extend(Humanized::Date)
+      h.interpolater << Humanized::Date
       
       t = Time.mktime(2010,10,18,9,58,1)
       
@@ -95,7 +122,7 @@ describe Humanized do
     it "should translate numbers" do
       
       h = Humanized::Humanizer.new
-      h.interpolater.extend(Humanized::Number)
+      h.interpolater << Humanized::Number
       
       h[:numeric,:format,:default] = '%d'
       

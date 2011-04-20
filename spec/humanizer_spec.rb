@@ -133,8 +133,8 @@ YAML
     
     it "should format numbers" do
       
-      h = Humanized::Humanizer.new(:interpolater => Humanized::Humanizer::PrivatObject.new)
-      h.interpolater.extend(Humanized::Number)
+      h = Humanized::Humanizer.new
+      h.interpolater << Humanized::Number
       
       h[:numeric, :instance] = '[number|%self|%format]'
       h[:numeric, :format ,:default]='%d'

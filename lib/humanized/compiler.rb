@@ -72,16 +72,16 @@ protected
       "variables[#{token.inspect}]"
     elsif token.kind_of? Hash
       if token[:args].any?
-        "interpolater.#{token[:method]}(humanizer,#{token[:args].map(&TRANSFORMER).join(',')})"
+        "o.#{token[:method]}(humanizer,#{token[:args].map(&TRANSFORMER).join(',')})"
       else
-        "interpolater.#{token[:method]}(humanizer)"
+        "o.#{token[:method]}(humanizer)"
       end
     end
   }
   
   def compile!(str)
     str = str.dup.freeze
-    return eval('Compiled.new(str) do |humanizer,interpolater,variables| ' + TRANSFORMER.call(read(str)) +' end')
+    return eval('Compiled.new(str) do |humanizer,variables| o = humanizer.interpolater.object ;' + TRANSFORMER.call(read(str)) +' end')
   end
   
   def read(str)

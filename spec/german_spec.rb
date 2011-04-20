@@ -46,8 +46,8 @@ describe Humanized::German do
         :genitiv => 'stranger\'s'
       }
 
-      h.interpolater.extend(Humanized::German)
-
+      h.interpolater << Humanized::German
+      
       h.interpolate('[n|%i|one|other]',:i => 1).should == 'one'
       h.interpolate('[n|%i|one|other]',:i => 2).should == 'other'
 
@@ -83,7 +83,7 @@ describe Humanized::German do
         }
       }
 
-      h.interpolater.extend(Humanized::German)
+      h.interpolater << Humanized::German
 
       h.interpolate('[kn|nominativ|%i|%thing]',:i => 1,:thing=>:one).should == 'one'
       h.interpolate('[kn|nominativ|%i|%thing]',:i => 2,:thing=>:one).should == 'other'
@@ -119,7 +119,7 @@ describe Humanized::German do
 
       end
 
-      h.interpolater.extend(Humanized::German)
+      h.interpolater << Humanized::German
 
       h.interpolate('[kng|nominativ|1|m|%thing]',:thing=>:user).should == 'Benutzer'
       h.interpolate('[kng|nominativ|1|f|%thing]',:thing=>:user).should == 'Benutzerin'
@@ -208,8 +208,7 @@ describe Humanized::German do
         }
       }
 
-      h.interpolater.extend(Humanized::German)
-      h.interpolater.extend(Humanized::Conjunctions)
+      h.interpolater << Humanized::German << Humanized::Conjunctions
 
       h.interpolate('[the|[kn|nominativ|1|%thing]]',:thing=>:user).should == 'der Benutzer'
       

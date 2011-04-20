@@ -21,6 +21,7 @@ require 'logger'
 require 'set'
 require 'humanized/compiler.rb'
 require 'humanized/source.rb'
+require 'humanized/interpolater.rb'
 module Humanized
 # A Humanizer has one simple task: <b>create strings in its language/dialect/locale/whatever!</b>
 #
@@ -33,16 +34,6 @@ module Humanized
 class Humanizer
   
   IS_STRING = lambda{|x| x.kind_of? String }
-  
-  # This is a simple object without public methods. You can use this as a collection for interpolation methods.
-  class PrivatObject
-    public_instance_methods.each do |meth|
-      private meth
-    end
-    
-    public :extend
-    
-  end
   
   class << self
     
@@ -105,7 +96,7 @@ RB
   end
   
   component :interpolater do |value|
-    value || PrivatObject.new
+    value || Interpolater.new
   end
   
   component :source, :delegate =>[:package, :load , :<<, :get ] do |value|
@@ -210,7 +201,7 @@ RB
   end
   
   def interpolate(str,vars={})
-    return @compiler.compile(str).call(self,@interpolater,vars)
+    return @compiler.compile(str).call(self,vars)
   rescue Exception => e
     return handle_interpolation_exception(e, str, vars)
   end
