@@ -1,17 +1,12 @@
 source "http://gemcutter.org"
 
-#gemspec
-
-gem 'rake'
+gemspec
 
 gem 'facets', :require => nil
-
-gem 'rspec'
 
 group :testing do
   
   gem 'simplecov', :require => false
   gem 'yajl-ruby', :require => 'yajl', :platform => :ruby
-  gem 'std_calendar'
   
 end

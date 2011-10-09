@@ -76,6 +76,12 @@ describe Humanized do
     h.interpolater.object.crashes.should == 0
     
   end
+  
+  it "should not require full facets" do
+  
+    $".select{|n| n =~ /core.facets\.rb$/ }.should be_none
+  
+  end
 
   describe Humanized::Date do
     

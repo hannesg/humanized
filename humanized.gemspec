@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = %q{humanized}
-  s.version = "0.0.1.alpha"
-  s.date = %q{2011-03-23}
+  s.version = "0.0.1"
+  s.date = %q{2011-10-09}
   s.authors = ["HannesG"]
   s.email = %q{hannes.georg@googlemail.com}
   s.summary = %q{advanced i18n for ruby}
