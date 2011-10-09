@@ -35,5 +35,24 @@ describe Humanized::Source do
     
   end
   
+  it "should support array keys" do
+    
+    h = Hash.new
+    h[ :a ] = "a"
+    h[ [:b] ] = "b"
+    h[ :c ] = Hash.new
+    h[ :c ][ [:d] ] = "cd"
+    h[ :c ][ [] ] = "c"
+    
+    s = Humanized::Source.new
+    s.store([], h)
+    
+    s.get([[:a]]).should == "a"
+    s.get([[:b]]).should == "b"
+    s.get([[:c]]).should == "c"
+    s.get([[:c, :d]]).should == "cd"
+    
+  end
+  
   
 end

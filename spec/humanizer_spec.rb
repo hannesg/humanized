@@ -25,7 +25,7 @@ describe Humanized::Humanizer do
   it "should be possible to renew a humanizer" do
     
     original = Humanized::Humanizer.new
-    copy = original.renew( :source => Humanized::Source.new )
+    copy = original.new( :source => Humanized::Source.new )
     copy.compiler.should == original.compiler
     copy.source.should_not == original.source
     
@@ -37,7 +37,7 @@ describe Humanized::Humanizer do
       
       class HumanizerA < Humanized::Humanizer
         
-        component :foo do |value|
+        component :foo do |value, old|
           value || 41
         end
         
@@ -50,7 +50,7 @@ describe Humanized::Humanizer do
       original.foo.should == 42
       original.bar.should be_nil
       
-      copy = original.renew( :source => Humanized::Source.new )
+      copy = original.new( :source => Humanized::Source.new )
       copy.should be_a( HumanizerA )
       copy.compiler.should == original.compiler
       copy.foo.should == original.foo
@@ -137,12 +137,19 @@ YAML
       h.interpolater << Humanized::Number
       
       h[:numeric, :instance] = '[number|%self|%format]'
+      h[:numeric, :format ,:default, :separator]=','
       h[:numeric, :format ,:default]='%d'
-      h[:numeric, :format ,:scientific]='%e'
+      h[:numeric, :format ,:scientific, :precision] = 10
       
       h[2].should == '2'
-      h[2, {:format => :scientific}].should == '2.000000e+00'
+      h[2, {:format => :scientific}].should == '2.0000000000'
       h[2, {:format => :weird}].should == '2'
+      
+      h[Math::PI].should == '3'
+      h[Math::PI, {:format => :scientific}].should == '3.1415926536'
+      h[Math::PI, {:format => :weird}].should == '3'
+      
+      h[2_000].should == '2,000'
       
       h.interpolate("a %number in a string")
       
@@ -155,14 +162,15 @@ YAML
     it "should not f**k around when an interpolation fails" do
       
       h = Humanized::Humanizer.new( :logger => false )
-      i = h.interpolater
+      h.interpolater.instance_eval{
+        def fail(humanizer, *args)
+          raise "IEEEEKSS!"
+        end
+      }
       
-      def i.fail(humanizer, *args)
-        raise "IEEEEKSS!"
-      end
       
       lambda{
-        h.interpolate("[fail]"  )
+        h.interpolate("[fail]")
       }.should_not raise_error
       
       h.interpolate("[fail]").should be_a(String)

@@ -14,17 +14,16 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require 'facets/object/dup'
-class Object
-  def humanization_key
-    if self.frozen? or !self.dup?
-      i = self
-    else
-      i = self.dup.freeze
-    end
-    self.class.humanization_key.optionally(:instance).with_variables({:self => i })
+require 'humanized/wrapper'
+module Humanized
+module Default
+  
+def capitalize(humanizer, *str)
+  return Humanized::Wrapper.wrap(*str) do |s|
+    s[0...1].upcase + s[1..-1]
   end
-  def _(*args,&block)
-    self.humanization_key._(*args,&block)
-  end
+end
+
+
+end
 end

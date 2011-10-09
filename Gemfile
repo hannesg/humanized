@@ -12,5 +12,6 @@ group :testing do
   
   gem 'simplecov', :require => false
   gem 'yajl-ruby', :require => 'yajl', :platform => :ruby
+  gem 'std_calendar'
   
 end

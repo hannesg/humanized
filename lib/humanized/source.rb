@@ -131,6 +131,10 @@ class Source
     }
   end
   
+  def inspect
+    "#<#{self.class.name}:#{self.object_id.to_s} | #{@source.size} key(s); loaded: #{@loaded.inspect}>"
+  end
+  
 protected
   
   def read_file(file)

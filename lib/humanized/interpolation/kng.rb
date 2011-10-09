@@ -176,9 +176,11 @@ protected
       return x.kng_kasus
     end
     i = x.to_i
-    c = meta_class.const_get :KASUS
-    if i > 0 and i <= c.size
-      return c[i-1].to_sym
+    if x.kind_of? Numeric
+      c = meta_class.const_get :KASUS
+      if i > 0 and i <= c.size
+        return c[i-1].to_sym
+      end
     end
     return abbrev_kasus[x]
   end

@@ -14,17 +14,38 @@
 #
 #    (c) 2011 by Hannes Georg
 #
-require 'facets/object/dup'
-class Object
-  def humanization_key
-    if self.frozen? or !self.dup?
-      i = self
-    else
-      i = self.dup.freeze
+require "helper.rb"
+
+require "more/humanized/parsing_humanizer"
+require "more/humanized/parser/numeric"
+
+describe Humanized::ParsingHumanizer do
+  
+  it "should work" do
+    
+    ph = Humanized::ParsingHumanizer.new :parser => [Humanized::Parser::Numeric]
+    
+    
+    ph.source.store([:numeric, :format, :default, :separator], ",")
+    ph.source.store([:numeric, :format, :default, :delimiter], ".")
+    
+    value = nil
+    
+    ph.parse(:numeric, "1,337", :pedantic => true) do |parsed|
+      
+      value = parsed
+    
     end
-    self.class.humanization_key.optionally(:instance).with_variables({:self => i })
+    
+    ph.parse(:numeric, "1,337", :pedantic => true).success{|parsed| value = parsed }
+    
+    puts value.inspect
+    
+    
+    
   end
-  def _(*args,&block)
-    self.humanization_key._(*args,&block)
-  end
+  
+  
+  
 end
+

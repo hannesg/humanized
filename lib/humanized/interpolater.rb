@@ -17,11 +17,14 @@
 module Humanized
   class Interpolater
 
-    NEEDED_METHODS = Set.new([:extend,:send,:eval,:__send__,:__id__,:object_id,:method])
+    UNCHANGED_METHODS = Set.new([:__send__,:object_id])
+    PRIVATE_METHODS = Set.new([:extend,:send,:eval,:instance_exec,:instance_eval, :respond_to? ,:__id__,:method])
 
     class LockedDown
       public_instance_methods.each do |meth|
-        if NEEDED_METHODS.include? meth.to_sym
+        if UNCHANGED_METHODS.include? meth.to_sym
+          next
+        elsif PRIVATE_METHODS.include? meth.to_sym
           private meth
         else
           undef_method meth
@@ -37,6 +40,16 @@ module Humanized
       end
     end
 
+    PRIVATE_METHODS.each do |meth|
+      class_eval(<<RB)
+alias_method :real_#{meth}, #{meth.inspect}
+
+def #{meth.to_s}(*args,&block)
+  @masterkey.send(#{meth.inspect},*args,&block)
+end
+RB
+    end
+
     def initialize
       @object = LockedDown.new
       @masterkey = @object.lock!
@@ -48,6 +61,10 @@ module Humanized
     end
 
     def object; @object ; end
+    
+    def inspect
+      "#<#{self.class.name}:#{self.object_id.to_s}>"
+    end
     
   end
 

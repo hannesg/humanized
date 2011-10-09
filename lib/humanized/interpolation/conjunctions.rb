@@ -21,12 +21,18 @@ module Conjunctions
   def and(humanizer, *args)
     args = args.flatten
     last = args.pop
+    if args.size == 0
+      return last.to_s
+    end
     return [args.join(', '), last].join(' '+humanizer[:and]+' ')
   end
   
   def or(humanizer, *args)
     args = args.flatten
     last = args.pop
+    if args.size == 0
+      return last.to_s
+    end
     return [args.join(', '), last].join(' '+humanizer[:or]+' ')
   end
   

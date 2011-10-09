@@ -17,6 +17,7 @@
 require "helper.rb"
 
 require "humanized.rb"
+#require "more/humanized/ruby_compiler"
 
 describe Humanized::Compiler do
   
@@ -119,4 +120,28 @@ describe Humanized::Compiler do
     
   end
   
+=begin
+  describe Humanized::RubyCompiler do
+    
+    it "should work" do
+      
+      h = Humanized::Humanizer.new(
+        :compiler => Humanized::RubyCompiler.new
+      )
+      
+      h.interpolater << Module.new do
+        
+        def o(humanizer, times)
+          "o" * times.to_i
+        end
+        
+      end
+      
+      h.interpolate('hell#{o(i)}', :i=>10).should == 'helloooooooooo'
+      
+    end
+    
+    
+  end
+=end
 end

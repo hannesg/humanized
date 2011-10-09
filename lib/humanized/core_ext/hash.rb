@@ -24,6 +24,6 @@ class Hash
   end
   
   def humanized_variables?
-    true
+    self.class == Hash
   end
 end

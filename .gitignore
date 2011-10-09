@@ -5,3 +5,5 @@ coverage
 doc
 Gemfile.lock
 Rakefile.compiled.rbc
+*.*~
+*~

@@ -44,7 +44,7 @@ class Humanizer
       @components ||= {}
       options = options.dup
       if !block_given?
-        initializer = lambda{|value| value}
+        initializer = lambda{|value, old| value}
       end
       options[:initializer] = initializer
       options.freeze
@@ -72,6 +72,24 @@ RB
         end
         
       end
+      # TODO: iterater superclass combinations
+      if @component_combinations
+        cc = @component_combinations
+        @component_combinations = []
+        cc.each do | rest, block |
+          when_combining_components(rest, block)
+        end
+      end
+    end
+    
+    def when_combining_components(*args,&block)
+      rest = args.map( &:to_sym ).uniq - self.components.to_a
+      if rest.none?
+        block.call( self )
+      else
+        @component_combinations = [] unless @component_combinations
+        @component_combinations << [ rest, block ]
+      end
     end
     
   public
@@ -83,23 +101,25 @@ RB
         if a
           a.each do |name, options|
             unless components.include?(name)
-              yield(name, options)
+              yield(name, options) if block_given?
               components << name
             end
           end
         end
         klass = klass.superclass
       end
-      
+      return components
     end
+    
+    alias_method :components, :each_component
     
   end
   
-  component :interpolater do |value|
+  component :interpolater do |value, old|
     value || Interpolater.new
   end
   
-  component :source, :delegate =>[:package, :load , :<<, :get ] do |value|
+  component :source, :delegate =>[:package, :load , :<<, :get ] do |value, old|
     if value.kind_of? Source
       value
     elsif value.kind_of? Hash
@@ -111,11 +131,11 @@ RB
     end
   end
   
-  component :compiler do |value|
+  component :compiler do |value, old|
     value || Compiler.new
   end
   
-  component :logger do |value|
+  component :logger do |value, old|
     if value.kind_of? Logger
       value
     elsif value.respond_to? :write and value.respond_to? :close
@@ -135,37 +155,63 @@ RB
 # @option components [Compiler] :compiler A compiler which can compile strings into procs. (see Compiler)
 # @option components [Source] :source A source which stores translated strings. (see Source)
 # @option components [Logger, IO, false] :logger A logger for this Humanizer or false to disable logging.
-  def initialize(components = {})
-    self.class.each_component do |name, options|
-      self.send("#{name}=".to_sym, options[:initializer].call(components[name]))
-    end
-  end
-  
-# Creates a new Humanizer deriving compponents from another humanizer
-# @param humanizer [Humanizer]
-# @see #initialize
-  def self.new_from( humanizer, components = {} )
-    unless humanizer.kind_of? Humanizer
-      raise ArgumentError, "Expected an instance of Humanized::Humanizer, but received #{humanizer.inspect}"
-    end
-    if self <= humanizer.class
-      components = components.dup
-      humanizer.class.each_component do |name, options|
-        unless components.key? name
-          components[name] = humanizer.send(name)
-        end
+  def initialize(*args)
+    
+    components = args.last.kind_of?(Hash) ? args.pop : {}
+    
+    used_keys = Set.new
+    
+    args.each do | mod |
+      if mod.kind_of? Module
+        extend mod
       end
-      return self.new(components)
-    else
-       raise ArgumentError, "I don't know if that's a good idea what you want. Maybe will be allowed later..."
     end
+    
+    if args.first.kind_of? Humanized::Humanizer
+      
+      humanizer = args.first
+      
+      modules = (class << humanizer; included_modules ; end ) - self.class.included_modules
+      
+      modules.each do | mod |
+        
+        extend mod
+        
+      end
+      
+      (class << self ; self ; end).each_component do |name, options|
+        if humanizer.respond_to? name
+          if components.key? name
+            self.send("#{name}=".to_sym, options[:initializer].call(components[name],humanizer.respond_to?(name) ? humanizer.send(name) : nil ))
+          else
+            self.send("#{name}=".to_sym, humanizer.send(name))
+          end
+        else
+          self.send("#{name}=".to_sym, options[:initializer].call(components[name],nil))
+        end
+        used_keys << name
+      end
+    else
+      
+      (class << self ; self ; end).each_component do |name, options|
+        self.send("#{name}=".to_sym, options[:initializer].call(components[name], nil))
+        used_keys << name
+      end
+    
+    end
+    
+    components.each do | k, v |
+      warn "Unused key #{k.inspect} with value #{v.inspect} in Humanizer.initialize" unless used_keys.include? k
+    end
+    
+    
   end
   
   
 # Creates a new Humanizer which uses the interpolater, compiler and source of this Humanizer unless other values for them were specified.
 # @see #initialize
-  def renew(components)
-    self.class.new_from(self, components)
+  def new(components)
+    self.class.new(self, components)
   end
   
 # Creates a String from the input. This will be the most used method in application code.

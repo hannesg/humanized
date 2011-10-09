@@ -65,7 +65,7 @@ protected
   
   TRANSFORMER = lambda{|token|
     if token.kind_of? Array
-      "[#{token.map(&TRANSFORMER).join(',')}].join()"
+      "[#{token.map(&TRANSFORMER).join(',')}].map(&:to_s).join()"
     elsif token.kind_of? String
       token.inspect
     elsif token.kind_of? Symbol

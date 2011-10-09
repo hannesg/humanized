@@ -14,6 +14,8 @@
 #
 #    (c) 2011 by Hannes Georg
 #
+require 'humanized'
+require 'humanized/query'
 require 'humanized/interpolation/kng.rb'
 module Humanized
 module German

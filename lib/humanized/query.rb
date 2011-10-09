@@ -15,6 +15,8 @@
 #    (c) 2011 by Hannes Georg
 #
 
+require 'facets/hash/graph.rb'
+
 module Humanized
 # A {Query} is _the_ way to tell a {Humanizer} what you want from it.
 # It contains of three parts:
@@ -83,7 +85,7 @@ module Humanized
     
     include Enumerable
 # @private
-    UNMAGIC_METHODS = [:to_ary]
+    UNMAGIC_METHODS = [:to_ary, :to_s, :to_sym, :freeze]
 # @private
     NAME_REGEX = /[a-z_]+/.freeze
 # @private
@@ -101,8 +103,11 @@ module Humanized
         p.freeze
       end
       @path.freeze
+      if !depth.nil? and path.size != @path.size
+        depth -= ( path.size - @path.size )
+      end
       @depth = (depth || @path.size)
-      @variables = variables
+      @variables = variables.graph do |k,v| [k.to_sym, v] end
       @default = default
     end
 
@@ -166,10 +171,29 @@ module Humanized
 #  # this will match ":borat_is_stupid, :not" and ":borat_is_stupid":
 #  :borat_is_stupid._.optionally(:not)
 #
+# @example
+#  # this will match ":borat_is_stupid, :not" and ":borat_is_stupid":
+#  :borat_is_stupid._.optionally(:not)
+#
 # @param key 
 # @return [Query] a new query
-    def optionally(key)
-      return self._(key) | self
+    def optionally(*keys)
+      
+      return self if keys.none?
+      
+      q = self._(*keys)
+      
+      begin
+      
+        keys.pop
+        
+        q |= q._(*keys)
+      
+      end while keys.any?
+    
+      q |= self
+    
+      return q
     end
     
     def [](*args)

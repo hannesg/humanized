@@ -22,9 +22,15 @@ module Date
     if format == 'default' or format.nil?
       it = date._(:format,:default)
     else
+      format = format.to_sym
       it = date._.format( format._ | :default._ )
     end
-    f = humanizer.get(it, :undeflow=>:deny, :overflow => :deny)
+    f = humanizer.get(it)
+    if humanizer.respond_to? :calendar
+      
+      return humanizer.calendar.format( f )
+      
+    end
     if f.kind_of? String
       return date.strftime( f )
     end
