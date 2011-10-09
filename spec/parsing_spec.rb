@@ -39,7 +39,7 @@ describe Humanized::ParsingHumanizer do
     
     ph.parse(:numeric, "1,337", :pedantic => true).success{|parsed| value = parsed }
     
-    puts value.inspect
+    value.should == 1337
     
     
     
