@@ -223,21 +223,7 @@ RB
 # @return [String]
   def [](*args)
     it = args._
-    
-    vars = it.variables
-    default = it.default
-    result = @source.get(it, :default=>default, :accepts=>IS_STRING)
-    result = default unless result.kind_of? String
-    if result.kind_of? String
-      return interpolate(result,vars)
-    else
-      if logger
-        logger.error do
-          "Expected to retrieve a String, but got: #{result.inspect}\n\tQuery: #{it.inspect}"
-        end
-      end
-      return ""
-    end
+    return it.to_humanized(self)
   end
 
 # Stores a translation

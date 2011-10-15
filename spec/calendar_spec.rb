@@ -36,6 +36,8 @@ describe Humanized::UsesCalendar do
   end
 
   it "should make humanizers able to deal with a calendar argument" do
+    
+    pending "calendar not loaded" unless std_calendar
   
     cal = UnixCalendar.new
   

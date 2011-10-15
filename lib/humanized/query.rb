@@ -283,6 +283,28 @@ module Humanized
       return self
     end
     
+    IS_STRING = lambda{|x| x.kind_of? String }
+    
+    def to_humanized(humanizer)
+      vars = self.variables
+      if vars[:self].respond_to? :to_humanized
+        return vars[:self].to_humanized(humanizer)
+      end
+      default = self.default
+      result = humanizer.source.get(self, :default=>default, :accepts=>IS_STRING)
+      result = default unless result.kind_of? String
+      if result.kind_of? String
+        return humanizer.interpolate(result,vars)
+      else
+        if humanizer.logger
+          humanizer.logger.error do
+            "Expected to retrieve a String, but got: #{result.inspect}\n\tQuery: #{it.path.inspect}"
+          end
+        end
+        return ""
+      end
+    end
+    
     Root = self.new([[]],1)
     None = self.new([],0)
     Meta = self.new([[:__meta__]],1)

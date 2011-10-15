@@ -16,14 +16,21 @@
 #
 require "helper.rb"
 
-require "more/humanized/parsing_humanizer"
 require "more/humanized/parser/numeric"
 
-describe Humanized::ParsingHumanizer do
+require 'more/humanized/has_parser'
+
+describe Humanized::HasParser do
+
+  class ParsingHumanizer < Humanized::Humanizer
+  
+    include Humanized::HasParser
+  
+  end
   
   it "should work" do
     
-    ph = Humanized::ParsingHumanizer.new :parser => [Humanized::Parser::Numeric]
+    ph = ParsingHumanizer.new :parser => [Humanized::Parser::Numeric]
     
     
     ph.source.store([:numeric, :format, :default, :separator], ",")

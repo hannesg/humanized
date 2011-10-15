@@ -16,7 +16,7 @@
 #
 
 require "bigdecimal"
-
+require 'more/humanized/parser'
 module Humanized
 class Parser
 class NumericClass < self
