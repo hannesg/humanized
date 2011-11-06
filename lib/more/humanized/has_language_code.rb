@@ -19,7 +19,6 @@ module Humanized
 module HasLanguageCode
 
   def self.included(base)
-    puts "language code added!"
     base.class_eval do
       component :language_code
     end

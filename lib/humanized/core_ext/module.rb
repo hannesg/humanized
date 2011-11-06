@@ -23,7 +23,7 @@ class Module
       return self.superclass.humanization_key
     end
     h = self.home
-    if h != Object and h.respond_to? :humanization_key
+    if h != Object and h.respond_to?(:humanization_key) and h.method(:humanization_key).owner != Module
       result = h.humanization_key + self.basename.downcase.to_sym
     else
       result = Humanized::Query::Root.+(*self.name.split('::').map{|s| s.downcase.to_sym })

@@ -60,7 +60,7 @@ module Number
     end
     
     if precision.kind_of? String and precision.length > 0
-      precision = x_to_i(precision)
+      precision = x_to_i(humanizer,precision)
     end
     
     unless precision.kind_of? Integer

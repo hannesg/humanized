@@ -129,10 +129,13 @@ describe Humanized do
       
       h = Humanized::Humanizer.new
       h.interpolater << Humanized::Number
+      h.interpolater << Humanized::KNG
       
       h[:numeric,:format,:default] = '%d'
       
       h.interpolate('[number|%n]',{:n => 2.4}).should == '2'
+      
+      h.interpolate('[number|%n|default|2]',{:n => 2.4}).should == '2.40'
       
     end
     
