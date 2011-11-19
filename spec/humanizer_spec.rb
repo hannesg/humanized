@@ -155,6 +155,18 @@ YAML
       
     end
     
+    it "should format true and false" do
+    
+      h = Humanized::Humanizer.new
+      
+      h[:trueclass] = 'yarp'
+      h[:falseclass] = 'norp'
+      
+      h[true].should == 'yarp'
+      h[false].should == 'norp'
+    
+    end
+    
   end
   
   describe "interpolation" do

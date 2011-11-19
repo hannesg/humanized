@@ -16,7 +16,7 @@
 #
 class Array
   def _(*args,&block)
-    if self.any?
+    unless self.empty?
       return self[0]._(*self[1..-1])._(*args,&block)
     else
       Humanized::Query::None

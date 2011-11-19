@@ -189,7 +189,7 @@ module Humanized
         
         q |= q._(*keys)
       
-      end while keys.any?
+      end until keys.empty?
     
       q |= self
     
