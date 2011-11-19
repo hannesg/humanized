@@ -299,7 +299,7 @@ module Humanized
         if humanizer.logger
           humanizer.logger.error do
             nnt = "\n\t\t"
-            "Expected to retrieve a String, but got: #{result.inspect}\n\tQuery: #{path.inspect}\n\tBacktrace: \n\t\t\#{Thread.current.backtrace[3..13].join(nnt)}"
+            "Expected to retrieve a String, but got: #{result.inspect}\n\tQuery: #{path.inspect}\n\tBacktrace: \n\t\t#{Thread.current.backtrace[3..13].join(nnt)}"
           end
         end
         return ""
