@@ -18,6 +18,7 @@ require "helper.rb"
 
 require "stringio"
 require "humanized.rb"
+require "humanized/interpolation/default"
 require "humanized/interpolation/number.rb"
 
 describe Humanized::Humanizer do
@@ -187,6 +188,22 @@ YAML
       
       h.interpolate("[fail]").should be_a(String)
       
+    end
+    
+    it "should support humanizations" do
+    
+      h = Humanized::Humanizer.new()
+      
+      h.interpolater << Humanized::Default
+      
+      class Foo
+      end
+      
+      h[Foo] = 'fooooo'
+      
+      h[' [humanize|%foo] ', :foo=>Foo.new].should == ' fooooo '
+      
+    
     end
     
   end

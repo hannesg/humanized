@@ -24,6 +24,12 @@ def capitalize(humanizer, *str)
   end
 end
 
+def humanize(humanizer, *x)
+  return Humanized::Wrapper.wrap(*x) do |x|
+    humanizer[x]
+  end
+end
+
 
 end
 end
